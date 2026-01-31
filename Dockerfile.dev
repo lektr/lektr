@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1.4
+
+# =============================================================================
+# Development Dockerfile - Optimized for speed and hot reload
+# =============================================================================
+
+FROM oven/bun:latest
+
+WORKDIR /app
+
+# Install basic tools for debugging
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy root workspace files
+COPY package.json bun.lock ./
+
+# Build shared types first (this rarely changes)
+WORKDIR /app/lektr-shared
+COPY lektr-shared/package.json lektr-shared/tsconfig.json ./
+COPY lektr-shared/src ./src
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install && bun run build
+
+# Install API dependencies
+WORKDIR /app/lektr-api
+COPY lektr-api/package.json lektr-api/bun.lock ./
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install
+
+# Install UI dependencies
+WORKDIR /app/lektr-ui
+COPY lektr-ui/package.json lektr-ui/bun.lock ./
+COPY lektr-ui/tsconfig.json lektr-ui/next.config.mjs lektr-ui/postcss.config.mjs ./
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install
+
+WORKDIR /app

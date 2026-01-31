@@ -1,0 +1,31 @@
+{
+    "md5sum": "bb34589c95c4fc540d7d1da6c89d2d2d",
+    "version": "json/1.0.0",
+    "file": "/storage/emulated/0/Books/How to Read a Book - Mortimer J. Adler (1972).epub",
+    "created_on": 1769399777,
+    "number_of_pages": 781,
+    "entries": [
+        {
+            "chapter": "Preface",
+            "color": "gray",
+            "pn_xp": "/body/DocFragment[5]/body/p[1]/span/text().0",
+            "drawer": "invert",
+            "text": "How to Read a Book was first published in the early months of 1940. To my surprise and, I confess, to my delight, it immediately became a best seller and remained at the top of the nationwide best-seller list for more than a year. Since 1940, it has continued to be widely circulated in numerous printings, both hardcover and paperback, and it has been translated into other languages—French, Swedish, German, Spanish, and Italian. Why, then, attempt to recast and rewrite the book for the present generation of readers?",
+            "sort": "highlight",
+            "page": 10,
+            "time": 1769399418
+        },
+        {
+            "chapter": "Preface",
+            "color": "gray",
+            "pn_xp": "/body/DocFragment[5]/body/p[4]/text()[1].58",
+            "drawer": "invert",
+            "text": "failure to carry instruction in reading beyond the elementary level. Most of our educational ingenuity, money, and effort is spent on reading instruction in the first six grades. Beyond that, little formal training is provided to carry students to higher and quite distinct levels of skill",
+            "sort": "highlight",
+            "page": 12,
+            "time": 1769399708
+        }
+    ],
+    "author": "Mortimer J. Adler",
+    "title": "How to Read a Book"
+}

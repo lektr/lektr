@@ -1,0 +1,3 @@
+[test]
+# Each test file runs in its own process to prevent mock pollution
+# This ensures mock.module() calls don't leak between test files

@@ -1,0 +1,14 @@
+{
+  "name": "lektr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A self-hosted, local-first knowledge preservation engine",
+  "workspaces": [
+    "lektr-shared",
+    "lektr-api",
+    "lektr-ui"
+  ],
+  "overrides": {
+    "zod": "3.23.8"
+  }
+}

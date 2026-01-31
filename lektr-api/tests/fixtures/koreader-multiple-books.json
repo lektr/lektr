@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Atomic Habits",
+    "authors": "James Clear",
+    "doc_path": "/mnt/books/atomic_habits.epub",
+    "highlight": {
+      "1": [
+        {
+          "text": "You do not rise to the level of your goals. You fall to the level of your systems.",
+          "chapter": "Introduction",
+          "page": 8,
+          "datetime": "2024-02-01T08:00:00",
+          "highlighted": true
+        }
+      ]
+    }
+  },
+  {
+    "title": "Deep Work",
+    "authors": "Cal Newport",
+    "doc_path": "/mnt/books/deep_work.epub",
+    "highlight": {
+      "1": [
+        {
+          "text": "The ability to perform deep work is becoming increasingly rare at exactly the same time it is becoming increasingly valuable in our economy.",
+          "chapter": "Part 1: The Idea",
+          "page": 14,
+          "datetime": "2024-02-05T10:30:00",
+          "highlighted": true
+        }
+      ]
+    }
+  }
+]

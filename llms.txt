@@ -1,0 +1,52 @@
+# Lektr
+
+> A self-hosted, local-first platform to aggregate, organize, and review your reading highlights.
+
+Lektr is an open-source knowledge preservation engine for avid readers who want to own their data. It consolidates highlights from Kindle, KOReader, Readwise, and web sources into a beautiful, searchable interface with spaced repetition review.
+
+## Quick Links
+
+- [Source Code](https://github.com/sergmetelin/lektr): GitHub repository
+- [Documentation](https://lektr.app/docs): Official documentation site
+
+## Core Documentation
+
+- [README](https://github.com/sergmetelin/lektr/blob/main/README.md): Project overview, features, and quick start
+- [Architecture](https://github.com/sergmetelin/lektr/blob/main/.antigravity/architecture.md): Container architecture, deployment, and environment setup
+- [Project Summary](https://github.com/sergmetelin/lektr/blob/main/.antigravity/project-summary.md): Core philosophy, technical stack, and MVP definition
+
+## Technical Stack
+
+- **Runtime**: Bun
+- **Backend**: Hono.js + Drizzle ORM
+- **Database**: PostgreSQL with pgvector extension
+- **Frontend**: Next.js 16, Tailwind CSS, Framer Motion
+- **AI**: Local embeddings via Hugging Face Transformers
+
+## Key Features
+
+- Universal import (Kindle, KOReader, Readwise, manual)
+- Semantic search with vector embeddings
+- Spaced repetition review (FSRS algorithm)
+- Self-hosted with Docker
+- Local-first, privacy-focused
+
+## API
+
+The API is built with Hono.js and uses OpenAPI for documentation. Key endpoints:
+
+- `/api/auth/*` - Authentication (register, login, logout)
+- `/api/books/*` - Book management
+- `/api/import/*` - Highlight import
+- `/api/review/*` - Spaced repetition review
+- `/api/search/*` - Semantic search
+- `/api/tags/*` - Tag management
+
+## License
+
+MIT License - https://github.com/sergmetelin/lektr/blob/main/LICENSE
+
+## Contact
+
+- GitHub Issues: https://github.com/sergmetelin/lektr/issues
+- Open Collective: https://opencollective.com/lektr

@@ -1,0 +1,43 @@
+{
+  "title": "The Art of Learning",
+  "authors": "Josh Waitzkin",
+  "doc_path": "/mnt/books/art_of_learning.epub",
+  "highlight": {
+    "1": [
+      {
+        "text": "The key to pursuing excellence is to embrace an organic, long-term learning process, and not to live in a shell of static, safe mediocrity.",
+        "notes": "Core philosophy of the book",
+        "chapter": "Introduction",
+        "page": 12,
+        "datetime": "2024-01-15T10:30:00",
+        "highlighted": true
+      },
+      {
+        "text": "Growth comes at the point of resistance. We learn by pushing ourselves and finding what really lies at the outer reaches of our abilities.",
+        "chapter": "Chapter 1: Innocent Moves",
+        "page": 24,
+        "datetime": "2024-01-15T11:45:00",
+        "highlighted": true
+      }
+    ],
+    "2": [
+      {
+        "text": "The moment we believe that success is determined by an ingrained level of ability, we will be brittle in the face of adversity.",
+        "notes": "Growth mindset before Dweck",
+        "chapter": "Chapter 3: Two Approaches to Learning",
+        "page": 45,
+        "datetime": "2024-01-16T09:00:00",
+        "highlighted": true
+      }
+    ]
+  },
+  "bookmarks": [
+    {
+      "text": "In my experience, successful people shoot for the stars, put their hearts on the line in every battle, and ultimately discover that the lessons learned from the pursuit of excellence mean much more than the immediate trophies and glory.",
+      "chapter": "Chapter 5: The Soft Zone",
+      "page": 78,
+      "datetime": "2024-01-17T14:20:00",
+      "highlighted": true
+    }
+  ]
+}

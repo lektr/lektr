@@ -1,0 +1,137 @@
+# =============================================================================
+# Development Docker Compose - Optimized for performance
+# =============================================================================
+# Usage:
+#   Start:    docker compose -f docker-compose.dev.yml up
+#   Rebuild:  docker compose -f docker-compose.dev.yml up --build
+#   Clear:    docker compose -f docker-compose.dev.yml down -v
+# =============================================================================
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Database
+  # ─────────────────────────────────────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: lektr_db
+    environment:
+      POSTGRES_USER: lektr
+      POSTGRES_PASSWORD: lektr_dev
+      POSTGRES_DB: lektr
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lektr"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    # Resource limits to prevent DB from hogging memory
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Backend API (Hono.js on Bun)
+  # ─────────────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: lektr_api
+    command: sh -c "cd /app/lektr-api && bun run --hot src/index.ts"
+    environment:
+      PORT: 3001
+      POSTGRES_USER: lektr
+      POSTGRES_PASSWORD: lektr_dev
+      POSTGRES_DB: lektr
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      CORS_ORIGINS: "http://localhost:3002,http://localhost"
+      HARDCOVER_API_KEY: ${HARDCOVER_API_KEY:-}
+    ports:
+      - "3001:3001"
+    volumes:
+      # Source code (hot reload)
+      - ./lektr-api/src:/app/lektr-api/src:cached
+      - ./lektr-api/drizzle:/app/lektr-api/drizzle:cached
+      # Shared types (rebuilt on container start)
+      - ./lektr-shared/src:/app/lektr-shared/src:ro
+      # Env file
+      - ./.env:/app/.env:ro
+      # Persist downloaded covers
+      - api_covers:/app/lektr-api/data/covers
+    depends_on:
+      db:
+        condition: service_healthy
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Frontend UI (Next.js) - NO TURBOPACK to reduce CPU usage
+  # ─────────────────────────────────────────────────────────────────────────────
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: lektr_ui
+    # Use standard Next.js dev (not Turbopack) - much lighter on resources
+    command: sh -c "cd /app/lektr-ui && bun run next dev -p 3002"
+    environment:
+      PORT: 3002
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+      # Reduce Next.js memory usage
+      NODE_OPTIONS: "--max-old-space-size=1024"
+    ports:
+      - "3002:3002"
+    volumes:
+      # Source code (hot reload) - use 'cached' for better performance on macOS/Linux
+      - ./lektr-ui/app:/app/lektr-ui/app:cached
+      - ./lektr-ui/components:/app/lektr-ui/components:cached
+      - ./lektr-ui/lib:/app/lektr-ui/lib:cached
+      - ./lektr-ui/public:/app/lektr-ui/public:cached
+      # Shared types
+      - ./lektr-shared/src:/app/lektr-shared/src:ro
+      # Env file
+      - ./.env:/app/.env:ro
+      # Named volume for .next cache (persists between restarts)
+      - ui_next_cache:/app/lektr-ui/.next
+    depends_on:
+      - api
+    # Resource limits - prevents system freeze
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+    name: lektr_pgdata
+  ui_next_cache:
+    name: lektr_ui_next_cache
+  api_covers:
+    name: lektr_api_covers
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Utility Commands (run with: docker compose -f docker-compose.dev.yml run --rm <command>)
+# ─────────────────────────────────────────────────────────────────────────────
+# Clear all caches:
+#   docker compose -f docker-compose.dev.yml down -v
+#
+# Rebuild from scratch:
+#   docker compose -f docker-compose.dev.yml build --no-cache
+#
+# View logs:
+#   docker compose -f docker-compose.dev.yml logs -f api
+#   docker compose -f docker-compose.dev.yml logs -f ui

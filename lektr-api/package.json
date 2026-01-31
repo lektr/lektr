@@ -1,0 +1,42 @@
+{
+  "name": "lektr-api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "0.9.5",
+    "@hono/zod-validator": "^0.4.0",
+    "@huggingface/transformers": "^3.8.1",
+    "@lektr/shared": "file:../lektr-shared",
+    "@react-email/components": "^1.0.6",
+    "@react-email/render": "^2.0.4",
+    "@squeakyrobot/fsrs": "^1.0.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.38.0",
+    "hono": "^4.6.0",
+    "jose": "^5.9.0",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.13",
+    "postgres": "^3.4.5",
+    "posthog-node": "^5.24.7",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/bun": "latest",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^7.0.9",
+    "@types/react": "^19.2.10",
+    "bcryptjs": "^3.0.3",
+    "drizzle-kit": "^0.30.0"
+  }
+}
