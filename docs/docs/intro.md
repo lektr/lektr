@@ -34,5 +34,5 @@ Lektr consists of three main components:
 
 ## Getting Help
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/sergmetelin/lektr/issues)
-- **Source Code**: [View on GitHub](https://github.com/sergmetelin/lektr)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/lektr/lektr/issues)
+- **Source Code**: [View on GitHub](https://github.com/lektr/lektr)

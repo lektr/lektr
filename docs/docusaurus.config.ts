@@ -1,97 +1,97 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
+import { themes as prismThemes } from "prism-react-renderer";
+import type { Config } from "@docusaurus/types";
+import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
-  title: 'Lektr Documentation',
-  tagline: 'Stop forgetting what you read',
-  favicon: 'img/favicon.ico',
+  title: "Lektr Documentation",
+  tagline: "Stop forgetting what you read",
+  favicon: "img/favicon.ico",
 
   future: {
     v4: true,
   },
 
-  url: 'https://lektr.app',
-  baseUrl: '/docs/',
+  url: "https://lektr.app",
+  baseUrl: "/docs/",
 
-  organizationName: 'sergmetelin',
-  projectName: 'lektr',
+  organizationName: "lektr",
+  projectName: "lektr",
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: "throw",
 
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
+    defaultLocale: "en",
+    locales: ["en"],
   },
 
   presets: [
     [
-      'classic',
+      "classic",
       {
         docs: {
-          routeBasePath: '/', // Docs at root
-          sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/sergmetelin/lektr/tree/main/docs/',
+          routeBasePath: "/", // Docs at root
+          sidebarPath: "./sidebars.ts",
+          editUrl: "https://github.com/lektr/lektr/tree/main/docs/",
         },
         blog: false, // Disable blog for now
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
-    image: 'img/lektr-social-card.jpg',
+    image: "img/lektr-social-card.jpg",
     colorMode: {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Lektr',
+      title: "Lektr",
       logo: {
-        alt: 'Lektr Logo',
-        src: 'img/logo.svg',
+        alt: "Lektr Logo",
+        src: "img/logo.svg",
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'docsSidebar',
-          position: 'left',
-          label: 'Documentation',
+          type: "docSidebar",
+          sidebarId: "docsSidebar",
+          position: "left",
+          label: "Documentation",
         },
         {
-          href: 'https://github.com/sergmetelin/lektr',
-          label: 'GitHub',
-          position: 'right',
+          href: "https://github.com/lektr/lektr",
+          label: "GitHub",
+          position: "right",
         },
       ],
     },
     footer: {
-      style: 'dark',
+      style: "dark",
       links: [
         {
-          title: 'Docs',
+          title: "Docs",
           items: [
             {
-              label: 'Getting Started',
-              to: '/',
+              label: "Getting Started",
+              to: "/",
             },
             {
-              label: 'Installation',
-              to: '/getting-started/installation',
+              label: "Installation",
+              to: "/getting-started/installation",
             },
             {
-              label: 'Configuration',
-              to: '/configuration/email',
+              label: "Configuration",
+              to: "/configuration/email",
             },
           ],
         },
         {
-          title: 'More',
+          title: "More",
           items: [
             {
-              label: 'GitHub',
-              href: 'https://github.com/sergmetelin/lektr',
+              label: "GitHub",
+              href: "https://github.com/lektr/lektr",
             },
           ],
         },
@@ -101,7 +101,7 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
-      additionalLanguages: ['bash', 'json', 'yaml', 'tsx'],
+      additionalLanguages: ["bash", "json", "yaml", "tsx"],
     },
   } satisfies Preset.ThemeConfig,
 };

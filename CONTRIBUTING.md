@@ -18,7 +18,7 @@ You can run the entire stack locally using Docker and Bun.
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/sergmetelin/lektr.git
+   git clone https://github.com/lektr/lektr.git
    cd lektr
    ```
 
@@ -204,6 +204,6 @@ All import sources implement the `BaseImporter` interface. Here's how to add sup
 ## 🤝 Community
 
 - [Open Collective](https://opencollective.com/lektr) - Support the project
-- [GitHub Issues](https://github.com/sergmetelin/lektr/issues) - Bug reports & features
+- [GitHub Issues](https://github.com/lektr/lektr/issues) - Bug reports & features
 
 Thank you for contributing!

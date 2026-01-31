@@ -17,7 +17,7 @@ This guide covers deploying Lektr using Docker, the recommended method for self-
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/sergmetelin/lektr.git
+git clone https://github.com/lektr/lektr.git
 cd lektr
 ```
 

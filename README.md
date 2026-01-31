@@ -7,14 +7,14 @@
   </p>
 
   <p align="center">
-    <a href="https://github.com/sergmetelin/lektr/stargazers">
-      <img src="https://img.shields.io/github/stars/sergmetelin/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub stars" />
+    <a href="https://github.com/lektr/lektr/stargazers">
+      <img src="https://img.shields.io/github/stars/lektr/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub stars" />
     </a>
-    <a href="https://github.com/sergmetelin/lektr/network/members">
-      <img src="https://img.shields.io/github/forks/sergmetelin/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub forks" />
+    <a href="https://github.com/lektr/lektr/network/members">
+      <img src="https://img.shields.io/github/forks/lektr/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub forks" />
     </a>
-    <a href="https://github.com/sergmetelin/lektr/issues">
-      <img src="https://img.shields.io/github/issues/sergmetelin/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub issues" />
+    <a href="https://github.com/lektr/lektr/issues">
+      <img src="https://img.shields.io/github/issues/lektr/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub issues" />
     </a>
   </p>
 </div>
@@ -122,7 +122,7 @@ If you love Lektr and want to support its development, consider donating via Ope
 
 If you find Lektr useful, please give it a star on GitHub! It helps more people discover the project.
 
-[![Star on GitHub](https://img.shields.io/github/stars/sergmetelin/lektr?style=social)](https://github.com/sergmetelin/lektr)
+[![Star on GitHub](https://img.shields.io/github/stars/lektr/lektr?style=social)](https://github.com/lektr/lektr)
 
 ## 🛠️ Development
 

@@ -6,14 +6,14 @@ Lektr is an open-source knowledge preservation engine for avid readers who want 
 
 ## Quick Links
 
-- [Source Code](https://github.com/sergmetelin/lektr): GitHub repository
+- [Source Code](https://github.com/lektr/lektr): GitHub repository
 - [Documentation](https://lektr.app/docs): Official documentation site
 
 ## Core Documentation
 
-- [README](https://github.com/sergmetelin/lektr/blob/main/README.md): Project overview, features, and quick start
-- [Architecture](https://github.com/sergmetelin/lektr/blob/main/.antigravity/architecture.md): Container architecture, deployment, and environment setup
-- [Project Summary](https://github.com/sergmetelin/lektr/blob/main/.antigravity/project-summary.md): Core philosophy, technical stack, and MVP definition
+- [README](https://github.com/lektr/lektr/blob/main/README.md): Project overview, features, and quick start
+- [Architecture](https://github.com/lektr/lektr/blob/main/.antigravity/architecture.md): Container architecture, deployment, and environment setup
+- [Project Summary](https://github.com/lektr/lektr/blob/main/.antigravity/project-summary.md): Core philosophy, technical stack, and MVP definition
 
 ## Technical Stack
 
@@ -44,9 +44,9 @@ The API is built with Hono.js and uses OpenAPI for documentation. Key endpoints:
 
 ## License
 
-MIT License - https://github.com/sergmetelin/lektr/blob/main/LICENSE
+MIT License - https://github.com/lektr/lektr/blob/main/LICENSE
 
 ## Contact
 
-- GitHub Issues: https://github.com/sergmetelin/lektr/issues
+- GitHub Issues: https://github.com/lektr/lektr/issues
 - Open Collective: https://opencollective.com/lektr
