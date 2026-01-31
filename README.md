@@ -73,7 +73,7 @@ Most people forget 90% of what they read within a week. Lektr's active recall sy
 
 Unlike other tools that charge monthly fees for your own data, Lektr is:
 
-- **100% Free & Open Source (MIT)**
+- **100% Free & Open Source (Apache 2.0)**
 - **Self-Hosted** (Docker)
 - **Local-First** (Privacy focused)
 

@@ -44,7 +44,7 @@ The API is built with Hono.js and uses OpenAPI for documentation. Key endpoints:
 
 ## License
 
-MIT License - https://github.com/lektr/lektr/blob/main/LICENSE
+Apache 2.0 License - https://github.com/lektr/lektr/blob/main/LICENSE
 
 ## Contact
 
