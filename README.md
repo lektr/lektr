@@ -19,6 +19,11 @@
   </p>
 </div>
 
+> [!IMPORTANT]
+> **Lektr is currently in early development.**
+>
+> We are actively building the foundation and things might change rapidly, expect bugs and errors for now. We welcome start contributors and feedback! Please check our [Issues](https://github.com/lektr/lektr/issues) to see what we're working on.
+
 ---
 
 ## 📖 About
