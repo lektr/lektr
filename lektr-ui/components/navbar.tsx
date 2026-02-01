@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/api";
 import { NavLink } from "@/components/nav-link";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -35,8 +36,8 @@ export function Navbar() {
       <div className="container flex items-center h-[72px] gap-4">
         {/* Brand */}
         <div className="flex-1">
-          <Link href="/" className="font-serif text-2xl font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity">
-            Lektr
+          <Link href="/" className="hover:opacity-80 transition-opacity flex items-center">
+            <Logo />
           </Link>
         </div>
 
@@ -100,7 +101,7 @@ export function Navbar() {
                   <ThemeToggle />
 
                   <div className="h-4 w-px bg-border/60 mx-1" />
-                  
+
                   <UserMenu />
                 </>
               ) : (
