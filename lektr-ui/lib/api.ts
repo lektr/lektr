@@ -71,6 +71,22 @@ export async function getCurrentUser(): Promise<{ user: User } | null> {
   }
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to change password");
+  }
+
+  return response.json();
+}
+
 // Books API
 export async function getBooks(): Promise<{ books: Book[] }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/books`, {
@@ -150,7 +166,7 @@ export async function importHighlights(
   if (!response.ok) {
     const data = await response.json();
     let message = data.error || data.message || "Import failed";
-    
+
     // Handle ZodError object
     if (typeof message === 'object' && message !== null) {
       if (message.name === 'ZodError' && Array.isArray(message.issues)) {
@@ -159,7 +175,7 @@ export async function importHighlights(
         message = JSON.stringify(message);
       }
     }
-    
+
     const details = data.details || "";
     throw new Error(details ? `${message}: ${details}` : message);
   }
@@ -329,17 +345,17 @@ export interface EmbeddingStatus {
 }
 
 export async function searchHighlights(
-  query: string, 
+  query: string,
   options?: { limit?: number; tagIds?: string[] }
 ): Promise<SearchResponse> {
   const { limit = 10, tagIds = [] } = options || {};
-  
+
   let url = `${API_BASE_URL}/api/v1/search?q=${encodeURIComponent(query)}&limit=${limit}`;
-  
+
   if (tagIds.length > 0) {
     url += `&tagIds=${tagIds.join(",")}`;
   }
-  
+
   const response = await fetch(url, { credentials: "include" });
 
   if (!response.ok) {
@@ -792,7 +808,7 @@ export async function sendTestEmail(email: string): Promise<{ success: boolean; 
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     return { success: false, error: data.error || "Test failed" };
   }

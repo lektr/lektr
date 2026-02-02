@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { registerRoute, loginRoute, logoutRoute, meRoute } from "./auth.routes";
+import { registerRoute, loginRoute, logoutRoute, meRoute, changePasswordRoute } from "./auth.routes";
 import { authService, AuthError } from "../services/auth.service";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -69,5 +69,31 @@ authOpenAPI.openapi(meRoute, async (c) => {
     }, 200);
   } catch {
     return c.json({ error: "Invalid token" }, 401);
+  }
+});
+
+// Change Password
+authOpenAPI.openapi(changePasswordRoute, async (c) => {
+  const cookie = c.req.header("Cookie");
+  const token = cookie?.match(/token=([^;]+)/)?.[1];
+
+  if (!token) {
+    return c.json({ error: "Not authenticated" }, 401);
+  }
+
+  try {
+    const payload = await authService.validateSession(token);
+    const { currentPassword, newPassword } = c.req.valid("json");
+
+    await authService.changePassword(payload.userId, currentPassword, newPassword);
+    return c.json({ success: true }, 200);
+  } catch (error) {
+    if (error instanceof AuthError && error.code === "INVALID_CREDENTIALS") {
+      return c.json({ error: error.message }, 401);
+    }
+    if (error instanceof AuthError && error.code === "INVALID_TOKEN") {
+      return c.json({ error: "Invalid token" }, 401);
+    }
+    throw error;
   }
 });

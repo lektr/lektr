@@ -1,10 +1,11 @@
 import { createRoute } from "@hono/zod-openapi";
-import { 
-  RegisterSchema, 
-  LoginSchema, 
-  AuthSuccessSchema, 
+import {
+  RegisterSchema,
+  LoginSchema,
+  AuthSuccessSchema,
   ErrorSchema,
-  UserSchema 
+  UserSchema,
+  ChangePasswordSchema
 } from "./schemas";
 import { z } from "@hono/zod-openapi";
 
@@ -117,6 +118,49 @@ export const meRoute = createRoute({
     },
     401: {
       description: "Not authenticated",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+export const changePasswordRoute = createRoute({
+  method: "put",
+  path: "/password",
+  tags: ["Authentication"],
+  summary: "Change password",
+  description: "Change the authenticated user's password. Requires current password for verification.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: ChangePasswordSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Password changed successfully",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean() }),
+        },
+      },
+    },
+    400: {
+      description: "Validation error (e.g., password too short)",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Not authenticated or invalid current password",
       content: {
         "application/json": {
           schema: ErrorSchema,

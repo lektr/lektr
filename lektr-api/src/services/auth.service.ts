@@ -122,6 +122,32 @@ export class AuthService {
   }
 
   /**
+   * Changes a user's password after verifying the current password.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new AuthError("User not found", "INVALID_CREDENTIALS");
+    }
+
+    const passwordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!passwordValid) {
+      throw new AuthError("Current password is incorrect", "INVALID_CREDENTIALS");
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+    await db
+      .update(users)
+      .set({ passwordHash: newPasswordHash })
+      .where(eq(users.id, userId));
+  }
+
+  /**
    * Validates a session token and returns the user context.
    */
   async validateSession(token: string): Promise<TokenPayload> {
