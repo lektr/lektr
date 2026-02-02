@@ -1,1 +1,1 @@
-ALTER TABLE "books" ADD COLUMN IF NOT EXISTS "pinned_at" timestamp with time zone;
+ALTER TABLE "books" ADD COLUMN "pinned_at" timestamp with time zone;

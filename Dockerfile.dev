@@ -4,13 +4,14 @@
 # Development Dockerfile - Optimized for speed and hot reload
 # =============================================================================
 
-FROM node:20-slim
+FROM node:25-slim
 
 WORKDIR /app
 
 # Install basic tools for debugging
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy root workspace files

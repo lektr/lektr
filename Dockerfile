@@ -8,7 +8,7 @@
 # Stage 1: Build (runs on native platform only, not emulated)
 # This avoids QEMU issues with native modules like lightningcss
 # -----------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM node:20-slim AS builder
+FROM --platform=$BUILDPLATFORM node:25-slim AS builder
 
 WORKDIR /app
 
@@ -43,7 +43,7 @@ RUN /app/node_modules/.bin/next build
 # -----------------------------------------------------------------------------
 # Stage 2: Final image with all services (multi-arch)
 # -----------------------------------------------------------------------------
-FROM node:20-slim AS final
+FROM node:25-slim AS final
 
 WORKDIR /app
 
@@ -52,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     supervisor \
     curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /var/log/supervisor /var/log/nginx
 
