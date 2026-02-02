@@ -87,6 +87,14 @@ RUN npm ci --omit=dev
 # Reinstall sharp with platform-specific binaries for target arch
 RUN npm install --include=optional sharp
 
+# Reinstall onnxruntime-node with platform-specific binaries for embedding generation
+# This is required for arm64 since the default install doesn't include arm64 binaries
+RUN npm install --include=optional onnxruntime-node
+
+# Create HuggingFace cache directory for embedding models
+RUN mkdir -p /app/.cache/huggingface
+ENV HF_HOME=/app/.cache/huggingface
+
 # Expose Nginx port
 EXPOSE 80
 

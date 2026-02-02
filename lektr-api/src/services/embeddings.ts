@@ -1,41 +1,60 @@
 /**
  * Embedding Service
- * 
+ *
  * Generates 384-dimensional embeddings using the all-MiniLM-L6-v2 model
  * via @huggingface/transformers. The model runs locally without API calls.
  */
 
-import { pipeline, type FeatureExtractionPipeline } from "@huggingface/transformers";
+import { pipeline, env, type FeatureExtractionPipeline } from "@huggingface/transformers";
+
+// Configure transformers for Node.js environment
+env.useBrowserCache = false;
+env.allowRemoteModels = true;
+env.allowLocalModels = true;
+
+// Set cache directory via environment variable
+if (process.env.HF_HOME) {
+  env.cacheDir = process.env.HF_HOME;
+}
 
 class EmbeddingService {
-  private pipeline: FeatureExtractionPipeline | null = null;
-  private loading: Promise<FeatureExtractionPipeline> | null = null;
+  private pipelineInstance: FeatureExtractionPipeline | null = null;
+  private loadingPromise: Promise<FeatureExtractionPipeline> | null = null;
   private readonly modelName = "Xenova/all-MiniLM-L6-v2";
 
   /**
    * Get or initialize the embedding pipeline.
    */
   private async getPipeline(): Promise<FeatureExtractionPipeline> {
-    if (this.pipeline) {
-      return this.pipeline;
+    if (this.pipelineInstance) {
+      return this.pipelineInstance;
     }
 
-    if (this.loading) {
-      return this.loading;
+    if (this.loadingPromise) {
+      return this.loadingPromise;
     }
 
     console.log(`🧠 Loading embedding model: ${this.modelName}...`);
-    
-    this.loading = pipeline("feature-extraction", this.modelName, {
-      dtype: "q8",
-    }) as Promise<FeatureExtractionPipeline>;
+    console.log(`🧠 Cache directory: ${env.cacheDir || 'default'}`);
+    console.log(`🧠 Platform: ${process.platform} / ${process.arch}`);
+
+    // Minimal configuration - let the library handle defaults
+    this.loadingPromise = (async () => {
+      try {
+        const pipe = await pipeline("feature-extraction", this.modelName);
+        console.log(`🧠 Embedding model loaded successfully`);
+        return pipe as FeatureExtractionPipeline;
+      } catch (error) {
+        console.error(`🧠 Failed to load embedding model:`, error);
+        throw error;
+      }
+    })();
 
     try {
-      this.pipeline = await this.loading;
-      console.log(`🧠 Embedding model loaded successfully`);
-      return this.pipeline;
+      this.pipelineInstance = await this.loadingPromise;
+      return this.pipelineInstance;
     } finally {
-      this.loading = null;
+      this.loadingPromise = null;
     }
   }
 
@@ -46,7 +65,7 @@ class EmbeddingService {
     try {
       const pipe = await this.getPipeline();
       const truncatedText = text.slice(0, 1000);
-      
+
       const output = await pipe(truncatedText, {
         pooling: "mean",
         normalize: true,
@@ -74,8 +93,9 @@ class EmbeddingService {
    * Check if the model is loaded.
    */
   isLoaded(): boolean {
-    return this.pipeline !== null;
+    return this.pipelineInstance !== null;
   }
 }
 
 export const embeddingService = new EmbeddingService();
+
