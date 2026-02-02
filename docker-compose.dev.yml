@@ -35,14 +35,14 @@ services:
           memory: 512M
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Backend API (Hono.js on Bun)
+  # Backend API (Hono.js on Node.js)
   # ─────────────────────────────────────────────────────────────────────────────
   api:
     build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: lektr_api
-    command: sh -c "cd /app/lektr-api && bun run --hot src/index.ts"
+    command: sh -c "cd /app/lektr-api && npm run dev"
     environment:
       PORT: 3001
       POSTGRES_USER: lektr
@@ -83,7 +83,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: lektr_ui
     # Use standard Next.js dev (not Turbopack) - much lighter on resources
-    command: sh -c "cd /app/lektr-ui && bun run next dev -p 3002"
+    command: sh -c "cd /app/lektr-ui && npx next dev -p 3002"
     environment:
       PORT: 3002
       NEXT_PUBLIC_API_URL: "http://localhost:3001"

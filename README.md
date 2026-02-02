@@ -135,7 +135,7 @@ To run Lektr locally for development:
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Start development server
 docker compose -f docker-compose.dev.yml up

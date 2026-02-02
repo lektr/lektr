@@ -4,16 +4,16 @@
 # Runs: Nginx (port 80) + API (3001) + UI (3002) via Supervisor
 # =============================================================================
 
-FROM oven/bun:latest AS base
+# -----------------------------------------------------------------------------
+# Stage 1: Build (runs on native platform only, not emulated)
+# This avoids QEMU issues with native modules like lightningcss
+# -----------------------------------------------------------------------------
+FROM --platform=$BUILDPLATFORM node:20-slim AS builder
+
 WORKDIR /app
 
-# -----------------------------------------------------------------------------
-# Stage 1: Build & Install (Unified)
-# -----------------------------------------------------------------------------
-FROM base AS builder
-
 # Copy root workspace config
-COPY package.json bun.lock ./
+COPY package.json package-lock.json ./
 
 # Copy package configs to correct locations
 COPY lektr-shared/package.json lektr-shared/tsconfig.json ./lektr-shared/
@@ -21,8 +21,7 @@ COPY lektr-api/package.json ./lektr-api/
 COPY lektr-ui/package.json ./lektr-ui/
 
 # Install ALL dependencies at root (respecting workspaces)
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install
+RUN npm ci
 
 # Verify Next.js installation
 RUN ls -la node_modules/.bin/next
@@ -30,12 +29,23 @@ RUN ls -la node_modules/.bin/next
 # Build shared types
 COPY lektr-shared/src ./lektr-shared/src
 WORKDIR /app/lektr-shared
-RUN bun run build
+RUN npm run build
+
+# Copy UI source and build Next.js
+WORKDIR /app
+COPY lektr-ui ./lektr-ui
+COPY .env.example ./.env
+RUN ln -sf /app/.env /app/lektr-ui/.env
+
+WORKDIR /app/lektr-ui
+RUN /app/node_modules/.bin/next build
 
 # -----------------------------------------------------------------------------
-# Stage 2: Final image with all services
+# Stage 2: Final image with all services (multi-arch)
 # -----------------------------------------------------------------------------
-FROM base AS final
+FROM node:20-slim AS final
+
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -52,31 +62,29 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Configure Supervisor
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy installed node_modules from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json /app/bun.lock ./
+# Copy package files for runtime deps
+COPY --from=builder /app/package.json /app/package-lock.json ./
 
 # Copy built shared library
 COPY --from=builder /app/lektr-shared ./lektr-shared
 
-# Copy source code for services
+# Copy API source
 COPY lektr-api ./lektr-api
-COPY lektr-ui ./lektr-ui
+
+# Copy built UI (with .next directory from builder)
+COPY --from=builder /app/lektr-ui ./lektr-ui
 
 # Setup Environment Files (Symlink API/UI to root .env)
-# Note: .env is mounted or copied at runtime usually, but we ensure symlinks exist
-# Copy example env to .env so the symlinks work during build
-# This prevents leaking actual secrets into the image
 COPY .env.example ./.env
 RUN ln -sf /app/.env /app/lektr-api/.env && \
     ln -sf /app/.env /app/lektr-ui/.env
 
-# Build Next.js for production
-WORKDIR /app/lektr-ui
-# We use the root next binary
-RUN /app/node_modules/.bin/next build
+# Install production dependencies only for target architecture
+# --omit=dev skips build-time deps like lightningcss
+RUN npm ci --omit=dev
 
-WORKDIR /app
+# Reinstall sharp with platform-specific binaries for target arch
+RUN npm install --include=optional sharp
 
 # Expose Nginx port
 EXPOSE 80

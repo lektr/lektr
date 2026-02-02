@@ -4,7 +4,7 @@
 # Development Dockerfile - Optimized for speed and hot reload
 # =============================================================================
 
-FROM oven/bun:latest
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -14,24 +14,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy root workspace files
-COPY package.json bun.lock ./
+COPY package.json package-lock.json ./
 
 # Build shared types first (this rarely changes)
 WORKDIR /app/lektr-shared
 COPY lektr-shared/package.json lektr-shared/tsconfig.json ./
 COPY lektr-shared/src ./src
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install && bun run build
+RUN npm install && npm run build
 
 # Install API dependencies
 WORKDIR /app/lektr-api
-COPY lektr-api/package.json lektr-api/bun.lock ./
-RUN --mount=type=cache,target=/root/.bun/install/cache bun install
+COPY lektr-api/package.json ./
+RUN npm install
 
 # Install UI dependencies
 WORKDIR /app/lektr-ui
-COPY lektr-ui/package.json lektr-ui/bun.lock ./
+COPY lektr-ui/package.json ./
 COPY lektr-ui/tsconfig.json lektr-ui/next.config.mjs lektr-ui/postcss.config.mjs ./
-RUN --mount=type=cache,target=/root/.bun/install/cache bun install
+RUN npm install
 
 WORKDIR /app

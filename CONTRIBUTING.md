@@ -6,11 +6,11 @@ Lektr is a **local-first, self-hosted knowledge preservation engine**. We priori
 
 ## ⚡ Quick Start
 
-You can run the entire stack locally using Docker and Bun.
+You can run the entire stack locally using Docker and npm.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (latest)
+- [Node.js](https://nodejs.org/) (v20 or later)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) or Docker Engine
 
 ### Development Setup
@@ -23,10 +23,10 @@ You can run the entire stack locally using Docker and Bun.
    ```
 
 2. **Install Dependencies**
-   We use Bun for package management across the monorepo.
+   We use npm for package management across the monorepo.
 
    ```bash
-   bun install
+   npm install
    ```
 
 3. **Configure Environment**
@@ -97,10 +97,10 @@ _See `.antigravity/STYLEGUIDE.md` for full details._
 
 ### Testing
 
-We use Bun's built-in test runner.
+We use Bun's built-in test runner for local development (tests still use `bun:test`).
 
 ```bash
-# Run API tests
+# Run API tests (requires bun installed locally)
 cd lektr-api && bun test
 ```
 
@@ -176,7 +176,7 @@ All import sources implement the `BaseImporter` interface. Here's how to add sup
 5. **Create a migration**
 
    ```bash
-   cd lektr-api && bun run db:generate
+   cd lektr-api && npm run db:generate
    ```
 
 6. **Add tests**

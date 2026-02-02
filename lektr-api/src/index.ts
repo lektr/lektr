@@ -121,7 +121,7 @@ app.get("/api/v1/version", (c) => {
 });
 
 // Start server with migrations and seeding
-const port = process.env.PORT ?? 3001;
+const port = Number(process.env.PORT ?? 3001);
 
 async function start() {
   await runMigrations();
@@ -131,14 +131,22 @@ async function start() {
   jobQueueService.start();
   digestService.start(process.env.DIGEST_CRON || "0 8 * * *"); // Default: 8 AM daily
 
+  // Use @hono/node-server for Node.js runtime
+  // Dynamic import to avoid issues if running in Bun
+  const { serve } = await import("@hono/node-server");
+  serve({
+    fetch: app.fetch,
+    port,
+  });
+
   console.log(`🚀 Lektr API running on http://localhost:${port}`);
   console.log(`📚 Swagger docs at http://localhost:${port}/docs`);
 }
 
 start();
 
+// Keep export for Bun compatibility during local development
 export default {
   port,
   fetch: app.fetch,
 };
-
