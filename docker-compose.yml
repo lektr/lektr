@@ -14,11 +14,12 @@ services:
     container_name: lektr_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: lektr
-      POSTGRES_PASSWORD: lektr_dev
-      POSTGRES_DB: lektr
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-lektr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lektr_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-lektr}
+    # for production security access to ports is closed
+    # ports:
+    #   - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -32,22 +33,25 @@ services:
   # Combined App Container (API + UI + Nginx)
   # ─────────────────────────────────────────────────────────────────────────────
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: lektr/lektr:latest
     container_name: lektr_app
     restart: unless-stopped
     environment:
       # Database connection
-      POSTGRES_USER: lektr
-      POSTGRES_PASSWORD: lektr_dev
-      POSTGRES_DB: lektr
+      POSTGRES_USER: ${POSTGRES_USER:-lektr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lektr_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-lektr}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       # Frontend - empty = relative paths (Nginx handles routing)
       NEXT_PUBLIC_API_URL: ""
-      # CORS - include your LAN IP for external access
-      CORS_ORIGINS: "http://localhost,http://192.168.68.59"
+      # CORS - include your LAN IP for external access, comma separated, for example:
+      # CORS_ORIGINS: "http://localhost,http://192.168.68.59"
+      CORS_ORIGINS: "http://localhost"
+      # Security - JWT_SECRET MUST be set in production!
+      JWT_SECRET: ${JWT_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@lektr.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       # Optional API keys
       HARDCOVER_API_KEY: ${HARDCOVER_API_KEY:-}
     ports:

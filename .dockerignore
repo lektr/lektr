@@ -1,0 +1,9 @@
+node_modules
+.git
+.env
+.next
+build
+dist
+lektr-api/node_modules
+lektr-shared/node_modules
+lektr-ui/node_modules

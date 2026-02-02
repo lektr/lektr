@@ -65,7 +65,9 @@ COPY lektr-ui ./lektr-ui
 
 # Setup Environment Files (Symlink API/UI to root .env)
 # Note: .env is mounted or copied at runtime usually, but we ensure symlinks exist
-COPY .env* ./
+# Copy example env to .env so the symlinks work during build
+# This prevents leaking actual secrets into the image
+COPY .env.example ./.env
 RUN ln -sf /app/.env /app/lektr-api/.env && \
     ln -sf /app/.env /app/lektr-ui/.env
 
