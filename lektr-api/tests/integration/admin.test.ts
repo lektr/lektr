@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { mockDb } from "../mocks/db";
 import { mockEmailService } from "../mocks/email";
 import { mockJobQueueService } from "../mocks/job-queue";
+import { mockDigestService } from "../mocks/digest";
 
 // Mock dependencies
 mock.module("../../src/db", () => ({
@@ -15,6 +16,10 @@ mock.module("../../src/services/email", () => ({
 
 mock.module("../../src/services/job-queue", () => ({
   jobQueueService: mockJobQueueService
+}));
+
+mock.module("../../src/services/digest", () => ({
+  digestService: mockDigestService
 }));
 
 // Mock Auth Middleware to inject user
@@ -93,7 +98,7 @@ describe("Admin Email Routes", () => {
 
     const res = await app.request("/admin/email-settings", {
       method: "PUT",
-      headers: { 
+      headers: {
         "x-mock-role": "admin",
         "Content-Type": "application/json"
       },
@@ -116,7 +121,7 @@ describe("Admin Email Routes", () => {
 
     const res = await app.request("/admin/email-settings", {
       method: "PUT",
-      headers: { 
+      headers: {
         "x-mock-role": "admin",
         "Content-Type": "application/json"
       },
@@ -136,7 +141,7 @@ describe("Admin Email Routes", () => {
 
     const res = await app.request("/admin/email-settings/test", {
       method: "POST",
-      headers: { 
+      headers: {
         "x-mock-role": "admin",
         "Content-Type": "application/json"
       },
@@ -168,5 +173,43 @@ describe("Admin Email Routes", () => {
     const body = await res.json();
     expect(body.pending).toBe(5);
     expect(body.completed).toBe(10);
+  });
+
+  test("POST /trigger-digest should return 403 for non-admin", async () => {
+    const res = await app.request("/admin/trigger-digest", {
+      method: "POST",
+      headers: { "x-mock-role": "user" }
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("POST /trigger-digest should return 400 if email not configured", async () => {
+    mockEmailService.isConfigured.mockResolvedValue(false);
+
+    const res = await app.request("/admin/trigger-digest", {
+      method: "POST",
+      headers: { "x-mock-role": "admin" }
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("not configured");
+  });
+
+  test("POST /trigger-digest should trigger digests when email is configured", async () => {
+    mockEmailService.isConfigured.mockResolvedValue(true);
+    mockDigestService.triggerNow.mockClear();
+    mockDigestService.triggerNow.mockResolvedValue(undefined);
+
+    const res = await app.request("/admin/trigger-digest", {
+      method: "POST",
+      headers: { "x-mock-role": "admin" }
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.message).toContain("being generated");
+    expect(mockDigestService.triggerNow).toHaveBeenCalled();
   });
 });

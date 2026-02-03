@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { registerRoute, loginRoute, logoutRoute, meRoute, changePasswordRoute } from "./auth.routes";
+import { registerRoute, loginRoute, logoutRoute, meRoute, changePasswordRoute, changeEmailRoute } from "./auth.routes";
 import { authService, AuthError } from "../services/auth.service";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -90,6 +90,35 @@ authOpenAPI.openapi(changePasswordRoute, async (c) => {
   } catch (error) {
     if (error instanceof AuthError && error.code === "INVALID_CREDENTIALS") {
       return c.json({ error: error.message }, 401);
+    }
+    if (error instanceof AuthError && error.code === "INVALID_TOKEN") {
+      return c.json({ error: "Invalid token" }, 401);
+    }
+    throw error;
+  }
+});
+
+// Change Email
+authOpenAPI.openapi(changeEmailRoute, async (c) => {
+  const cookie = c.req.header("Cookie");
+  const token = cookie?.match(/token=([^;]+)/)?.[1];
+
+  if (!token) {
+    return c.json({ error: "Not authenticated" }, 401);
+  }
+
+  try {
+    const payload = await authService.validateSession(token);
+    const { newEmail, password } = c.req.valid("json");
+
+    const result = await authService.changeEmail(payload.userId, newEmail, password);
+    return c.json({ success: true, email: result.email }, 200);
+  } catch (error) {
+    if (error instanceof AuthError && error.code === "INVALID_CREDENTIALS") {
+      return c.json({ error: error.message }, 401);
+    }
+    if (error instanceof AuthError && error.code === "EMAIL_EXISTS") {
+      return c.json({ error: error.message }, 400);
     }
     if (error instanceof AuthError && error.code === "INVALID_TOKEN") {
       return c.json({ error: "Invalid token" }, 401);

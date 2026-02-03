@@ -6,6 +6,7 @@ import { eq, isNull, inArray } from "drizzle-orm";
 import { metadataService } from "../services";
 import { emailService } from "../services/email";
 import { jobQueueService } from "../services/job-queue";
+import { digestService } from "../services/digest";
 import { render } from "@react-email/render";
 import WelcomeEmail from "../emails/welcome";
 
@@ -17,7 +18,7 @@ adminRouter.use("*", authMiddleware);
 // Email settings keys
 const EMAIL_SETTINGS_KEYS = [
   "smtp_host",
-  "smtp_port", 
+  "smtp_port",
   "smtp_user",
   "smtp_pass",
   "smtp_secure",
@@ -32,7 +33,7 @@ const EMAIL_SETTINGS_KEYS = [
  */
 adminRouter.get("/email-settings", async (c) => {
   const user = c.get("user");
-  
+
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
@@ -55,7 +56,7 @@ adminRouter.get("/email-settings", async (c) => {
   // Check if configured
   const isConfigured = await emailService.isConfigured();
 
-  return c.json({ 
+  return c.json({
     settings: settingsMap,
     isConfigured,
     envFallback: !settingsMap.smtp_host && process.env.SMTP_HOST ? true : false,
@@ -69,7 +70,7 @@ adminRouter.get("/email-settings", async (c) => {
  */
 adminRouter.put("/email-settings", async (c) => {
   const user = c.get("user");
-  
+
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
@@ -111,7 +112,7 @@ adminRouter.put("/email-settings", async (c) => {
  */
 adminRouter.post("/email-settings/test", async (c) => {
   const user = c.get("user");
-  
+
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
@@ -126,16 +127,16 @@ adminRouter.post("/email-settings/test", async (c) => {
   // Test connection first
   const connectionTest = await emailService.testConnection();
   if (!connectionTest.success) {
-    return c.json({ 
-      success: false, 
-      error: `Connection failed: ${connectionTest.error}` 
+    return c.json({
+      success: false,
+      error: `Connection failed: ${connectionTest.error}`
     }, 400);
   }
 
   // Render and send test email
   const appUrl = process.env.APP_URL || "http://localhost:3002";
   const html = await render(WelcomeEmail({ userEmail: testEmail, appUrl }));
-  
+
   const sent = await emailService.sendEmail(
     testEmail,
     "🧪 Lektr Test Email",
@@ -156,7 +157,7 @@ adminRouter.post("/email-settings/test", async (c) => {
  */
 adminRouter.get("/job-queue/status", async (c) => {
   const user = c.get("user");
-  
+
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
@@ -172,7 +173,7 @@ adminRouter.get("/job-queue/status", async (c) => {
  */
 adminRouter.post("/refresh-metadata", async (c) => {
   const user = c.get("user");
-  
+
   // Admin only
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
@@ -180,8 +181,8 @@ adminRouter.post("/refresh-metadata", async (c) => {
 
   // Check if metadata service has providers
   if (!metadataService.hasProviders()) {
-    return c.json({ 
-      error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment." 
+    return c.json({
+      error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment."
     }, 400);
   }
 
@@ -196,19 +197,19 @@ adminRouter.post("/refresh-metadata", async (c) => {
     .where(isNull(books.coverImageUrl));
 
   if (booksWithoutCovers.length === 0) {
-    return c.json({ 
-      queued: 0, 
-      message: "All books already have covers!" 
+    return c.json({
+      queued: 0,
+      message: "All books already have covers!"
     });
   }
 
   // Process books in background (don't await)
   const booksToProcess = [...booksWithoutCovers];
-  
+
   // Start async processing
   (async () => {
     console.log(`📚 Starting metadata refresh for ${booksToProcess.length} books...`);
-    
+
     let updated = 0;
     for (const book of booksToProcess) {
       try {
@@ -217,7 +218,7 @@ adminRouter.post("/refresh-metadata", async (c) => {
           book.author || undefined,
           book.id
         );
-        
+
         if (metadata?.coverImageUrl) {
           await db
             .update(books)
@@ -231,22 +232,22 @@ adminRouter.post("/refresh-metadata", async (c) => {
               updatedAt: new Date(),
             })
             .where(eq(books.id, book.id));
-          
+
           updated++;
           console.log(`✅ Updated metadata for "${book.title}"`);
         }
-        
+
         // Rate limit: wait 500ms between requests
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.error(`❌ Failed to update "${book.title}":`, error);
       }
     }
-    
+
     console.log(`📚 Metadata refresh complete: ${updated}/${booksToProcess.length} books updated`);
   })();
 
-  return c.json({ 
+  return c.json({
     queued: booksWithoutCovers.length,
     message: `Queued ${booksWithoutCovers.length} books for metadata refresh. Check server logs for progress.`
   });
@@ -263,8 +264,8 @@ adminRouter.post("/refresh-metadata/:bookId", async (c) => {
 
   // Check if metadata service has providers
   if (!metadataService.hasProviders()) {
-    return c.json({ 
-      error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment." 
+    return c.json({
+      error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment."
     }, 400);
   }
 
@@ -297,9 +298,9 @@ adminRouter.post("/refresh-metadata/:bookId", async (c) => {
   );
 
   if (!metadata?.coverImageUrl) {
-    return c.json({ 
+    return c.json({
       success: false,
-      message: "No cover found for this book" 
+      message: "No cover found for this book"
     });
   }
 
@@ -317,10 +318,41 @@ adminRouter.post("/refresh-metadata/:bookId", async (c) => {
     })
     .where(eq(books.id, book.id));
 
-  return c.json({ 
+  return c.json({
     success: true,
     coverImageUrl: metadata.coverImageUrl,
     message: "Cover updated successfully"
+  });
+});
+
+/**
+ * POST /api/v1/admin/trigger-digest
+ * Manually trigger digest emails for all users
+ * Admin only
+ */
+adminRouter.post("/trigger-digest", async (c) => {
+  const user = c.get("user");
+
+  if (user.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+
+  // Check if email is configured
+  const isConfigured = await emailService.isConfigured();
+  if (!isConfigured) {
+    return c.json({
+      error: "Email is not configured. Please configure SMTP settings first."
+    }, 400);
+  }
+
+  // Trigger digest generation in background
+  digestService.triggerNow().catch((error) => {
+    console.error("📬 [Digest] Manual trigger failed:", error);
+  });
+
+  return c.json({
+    success: true,
+    message: "Digest emails are being generated. Check server logs for progress."
   });
 });
 

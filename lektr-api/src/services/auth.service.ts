@@ -148,6 +148,46 @@ export class AuthService {
   }
 
   /**
+   * Changes a user's email after verifying the current password.
+   */
+  async changeEmail(userId: string, newEmail: string, password: string): Promise<{ email: string }> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new AuthError("User not found", "INVALID_CREDENTIALS");
+    }
+
+    // Verify password
+    const passwordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordValid) {
+      throw new AuthError("Password is incorrect", "INVALID_CREDENTIALS");
+    }
+
+    // Check if new email is already taken
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, newEmail))
+      .limit(1);
+
+    if (existingUser.length > 0 && existingUser[0].id !== userId) {
+      throw new AuthError("Email already registered", "EMAIL_EXISTS");
+    }
+
+    // Update email
+    await db
+      .update(users)
+      .set({ email: newEmail })
+      .where(eq(users.id, userId));
+
+    return { email: newEmail };
+  }
+
+  /**
    * Validates a session token and returns the user context.
    */
   async validateSession(token: string): Promise<TokenPayload> {

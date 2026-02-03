@@ -46,6 +46,13 @@ export const ChangePasswordSchema = z
   })
   .openapi("ChangePasswordRequest");
 
+export const ChangeEmailSchema = z
+  .object({
+    newEmail: z.string().email().openapi({ example: "newemail@example.com" }),
+    password: z.string().openapi({ example: "currentpassword123" }),
+  })
+  .openapi("ChangeEmailRequest");
+
 // ============================================
 // Book Schemas
 // ============================================

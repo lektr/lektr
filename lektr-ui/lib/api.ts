@@ -87,6 +87,22 @@ export async function changePassword(currentPassword: string, newPassword: strin
   return response.json();
 }
 
+export async function changeEmail(newEmail: string, password: string): Promise<{ success: boolean; email: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/email`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ newEmail, password }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to change email");
+  }
+
+  return response.json();
+}
+
 // Books API
 export async function getBooks(): Promise<{ books: Book[] }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/books`, {
@@ -872,6 +888,21 @@ export async function hardDeleteHighlight(highlightId: string): Promise<{ succes
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to permanently delete highlight");
+  }
+
+  return response.json();
+}
+
+// Digest API
+export async function triggerDigest(): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/admin/trigger-digest`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to trigger digest");
   }
 
   return response.json();

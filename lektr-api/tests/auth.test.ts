@@ -223,4 +223,43 @@ describe("Auth API Logic", () => {
       expect(isDifferent("samePassword", "samePassword")).toBe(false);
     });
   });
+
+  describe("Change Email Validation", () => {
+    test("should require valid email format for new email", () => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      expect(emailRegex.test("invalid")).toBe(false);
+      expect(emailRegex.test("missing@")).toBe(false);
+      expect(emailRegex.test("valid@example.com")).toBe(true);
+    });
+
+    test("should require password for email change verification", () => {
+      const hasPassword = (body: { password?: string }) => {
+        return typeof body.password === "string" && body.password.length > 0;
+      };
+
+      expect(hasPassword({ password: "mypassword" })).toBe(true);
+      expect(hasPassword({ password: "" })).toBe(false);
+      expect(hasPassword({})).toBe(false);
+    });
+
+    test("new email should be different from current email", () => {
+      const isDifferent = (current: string, newEmail: string) => current.toLowerCase() !== newEmail.toLowerCase();
+
+      expect(isDifferent("old@example.com", "new@example.com")).toBe(true);
+      expect(isDifferent("same@example.com", "same@example.com")).toBe(false);
+      expect(isDifferent("Same@Example.com", "same@example.com")).toBe(false);
+    });
+
+    test("should verify password before allowing email change", async () => {
+      const bcrypt = await import("bcryptjs");
+      const storedHash = await bcrypt.hash("correctPassword", 10);
+
+      const correctAttempt = await bcrypt.compare("correctPassword", storedHash);
+      const wrongAttempt = await bcrypt.compare("wrongPassword", storedHash);
+
+      expect(correctAttempt).toBe(true);
+      expect(wrongAttempt).toBe(false);
+    });
+  });
 });

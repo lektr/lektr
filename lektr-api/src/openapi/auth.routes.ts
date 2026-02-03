@@ -5,7 +5,8 @@ import {
   AuthSuccessSchema,
   ErrorSchema,
   UserSchema,
-  ChangePasswordSchema
+  ChangePasswordSchema,
+  ChangeEmailSchema
 } from "./schemas";
 import { z } from "@hono/zod-openapi";
 
@@ -161,6 +162,49 @@ export const changePasswordRoute = createRoute({
     },
     401: {
       description: "Not authenticated or invalid current password",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+export const changeEmailRoute = createRoute({
+  method: "put",
+  path: "/email",
+  tags: ["Authentication"],
+  summary: "Change email",
+  description: "Change the authenticated user's email address. Requires password for verification.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: ChangeEmailSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Email changed successfully",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean(), email: z.string().email() }),
+        },
+      },
+    },
+    400: {
+      description: "Email already registered or validation error",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Not authenticated or invalid password",
       content: {
         "application/json": {
           schema: ErrorSchema,
