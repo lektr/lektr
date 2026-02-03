@@ -1,8 +1,8 @@
-import { mock } from "bun:test";
+import { vi } from "vitest";
 
 export const mockDigestService = {
-  triggerNow: mock(() => Promise.resolve()),
-  generateDigestsForAllUsers: mock(() => Promise.resolve()),
+  triggerNow: vi.fn(() => Promise.resolve()),
+  generateDigestsForAllUsers: vi.fn(() => Promise.resolve()),
 };
 
 export const digestService = mockDigestService;

@@ -1,25 +1,22 @@
 /**
  * JobQueueService Unit Tests
- * 
+ *
  * These tests verify the JobQueueService behavior.
- * 
- * IMPORTANT: Due to Bun's mock.module caching, these tests must be run in
- * isolation: bun test tests/unit/job-queue.test.ts
- * 
+ *
  * When running all tests together, this file tests the MOCK behavior
  * which is fine for verifying the interface contract.
  */
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { mockDb } from "../mocks/db";
 import { mockEmailService } from "../mocks/email";
 
 // Mock dependencies
-mock.module("../../src/db", () => ({ db: mockDb }));
-mock.module("../../src/services/email", () => ({ emailService: mockEmailService }));
+vi.mock("../../src/db", () => ({ db: mockDb }));
+vi.mock("../../src/services/email", () => ({ emailService: mockEmailService }));
 
 describe("JobQueueService", () => {
   let jobQueueService: any;
-  
+
   beforeEach(async () => {
     mockDb.$reset();
     mockEmailService.sendEmail.mockClear();
@@ -37,11 +34,11 @@ describe("JobQueueService", () => {
     test("should be callable and return a job ID", async () => {
       // Set up mock to capture and return
       let capturedPayload: any;
-      mockDb.insert = mock(() => ({
-        values: mock((v: any) => {
+      mockDb.insert = vi.fn(() => ({
+        values: vi.fn((v: any) => {
           capturedPayload = v;
           return {
-            returning: mock(() => Promise.resolve([{ id: "test-id-123" }]))
+            returning: vi.fn(() => Promise.resolve([{ id: "test-id-123" }]))
           };
         })
       }));
@@ -56,7 +53,7 @@ describe("JobQueueService", () => {
 
   describe("getStatus", () => {
     test("should return an object with queue statistics", async () => {
-      mockDb.execute = mock(() => Promise.resolve({
+      mockDb.execute = vi.fn(() => Promise.resolve({
         rows: [{ pending: "5", processing: "1", failed: "0", completed: "100" }]
       }));
 

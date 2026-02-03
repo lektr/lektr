@@ -1,9 +1,9 @@
 /**
  * Readwise Importer Tests
- * 
+ *
  * Tests for the Readwise CSV importer.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { ReadwiseImporter } from "../src/importers/readwise";
 
 describe("ReadwiseImporter", () => {

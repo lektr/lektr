@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeAll } from "bun:test";
+import { describe, test, expect, beforeAll } from "vitest";
+import { readFileSync } from "fs";
 import { KOReaderImporter } from "../src/importers/koreader";
 
 describe("KOReaderImporter", () => {
@@ -40,9 +41,10 @@ describe("KOReaderImporter", () => {
 
   describe("parse - modern format (JSON/1.0.0 with entries)", () => {
     test("parses live KOReader export", async () => {
-      const sampleJson = await Bun.file(
-        "./tests/fixtures/live-example.json"
-      ).text();
+      const sampleJson = readFileSync(
+        "./tests/fixtures/live-example.json",
+        "utf-8"
+      );
       const file = new File([sampleJson], "export.json", {
         type: "application/json",
       });
@@ -56,9 +58,10 @@ describe("KOReaderImporter", () => {
     });
 
     test("extracts highlight content and metadata from entries", async () => {
-      const sampleJson = await Bun.file(
-        "./tests/fixtures/live-example.json"
-      ).text();
+      const sampleJson = readFileSync(
+        "./tests/fixtures/live-example.json",
+        "utf-8"
+      );
       const file = new File([sampleJson], "export.json", {
         type: "application/json",
       });
@@ -73,9 +76,10 @@ describe("KOReaderImporter", () => {
     });
 
     test("uses md5sum as externalId", async () => {
-      const sampleJson = await Bun.file(
-        "./tests/fixtures/live-example.json"
-      ).text();
+      const sampleJson = readFileSync(
+        "./tests/fixtures/live-example.json",
+        "utf-8"
+      );
       const file = new File([sampleJson], "export.json", {
         type: "application/json",
       });
@@ -87,9 +91,10 @@ describe("KOReaderImporter", () => {
 
   describe("parse - legacy format", () => {
     test("parses legacy format with highlight object", async () => {
-      const sampleJson = await Bun.file(
-        "./tests/fixtures/koreader-sample.json"
-      ).text();
+      const sampleJson = readFileSync(
+        "./tests/fixtures/koreader-sample.json",
+        "utf-8"
+      );
       const file = new File([sampleJson], "metadata.json", {
         type: "application/json",
       });
@@ -103,9 +108,10 @@ describe("KOReaderImporter", () => {
     });
 
     test("parses multiple books from array", async () => {
-      const sampleJson = await Bun.file(
-        "./tests/fixtures/koreader-multiple-books.json"
-      ).text();
+      const sampleJson = readFileSync(
+        "./tests/fixtures/koreader-multiple-books.json",
+        "utf-8"
+      );
       const file = new File([sampleJson], "metadata.json", {
         type: "application/json",
       });

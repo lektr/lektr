@@ -1,11 +1,14 @@
 /**
  * Email Service
- * 
+ *
  * Sends emails using Nodemailer with SMTP configuration loaded from DB or environment.
  */
 
-import nodemailer from "nodemailer";
+import type NodemailerType from "nodemailer";
 import type { Transporter } from "nodemailer";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const nodemailer: typeof NodemailerType = require("nodemailer");
 import { db } from "../db";
 import { settings } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -46,10 +49,10 @@ class EmailService {
         .where(eq(settings.key, "smtp_host"))
         .then(async (rows) => {
           if (rows.length === 0) return null;
-          
+
           const allSettings = await db.select().from(settings);
           const settingsMap = new Map(allSettings.map(s => [s.key, s.value]));
-          
+
           return {
             host: settingsMap.get("smtp_host") || "",
             port: parseInt(settingsMap.get("smtp_port") || "587"),

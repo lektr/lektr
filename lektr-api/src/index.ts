@@ -134,7 +134,6 @@ async function start() {
   digestService.start(process.env.DIGEST_CRON || "0 8 * * *"); // Default: 8 AM daily
 
   // Use @hono/node-server for Node.js runtime
-  // Dynamic import to avoid issues if running in Bun
   const { serve } = await import("@hono/node-server");
   serve({
     fetch: app.fetch,

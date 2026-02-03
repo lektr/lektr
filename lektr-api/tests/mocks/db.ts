@@ -1,27 +1,27 @@
-import { mock } from "bun:test";
+import { vi } from "vitest";
 
 // Create a fresh mock database that can be reset between tests
 const createMockDb = () => {
   let response: any[] = [];
 
   const chainable: any = {
-    select: mock(() => chainable),
-    from: mock(() => chainable),
-    where: mock(() => chainable),
-    limit: mock(() => chainable),
-    offset: mock(() => chainable),
-    orderBy: mock(() => chainable),
-    insert: mock(() => chainable),
-    values: mock(() => chainable),
-    update: mock(() => chainable),
-    set: mock(() => chainable),
-    delete: mock(() => chainable),
-    innerJoin: mock(() => chainable),
-    leftJoin: mock(() => chainable),
-    rightJoin: mock(() => chainable),
-    returning: mock(() => chainable),
-    onConflictDoUpdate: mock(() => chainable),
-    execute: mock(() => Promise.resolve({ rows: [] })),
+    select: vi.fn(() => chainable),
+    from: vi.fn(() => chainable),
+    where: vi.fn(() => chainable),
+    limit: vi.fn(() => chainable),
+    offset: vi.fn(() => chainable),
+    orderBy: vi.fn(() => chainable),
+    insert: vi.fn(() => chainable),
+    values: vi.fn(() => chainable),
+    update: vi.fn(() => chainable),
+    set: vi.fn(() => chainable),
+    delete: vi.fn(() => chainable),
+    innerJoin: vi.fn(() => chainable),
+    leftJoin: vi.fn(() => chainable),
+    rightJoin: vi.fn(() => chainable),
+    returning: vi.fn(() => chainable),
+    onConflictDoUpdate: vi.fn(() => chainable),
+    execute: vi.fn(() => Promise.resolve({ rows: [] })),
 
     // Make chainable "thenable" so it can be awaited
     then: (onfulfilled?: any, onrejected?: any) => {

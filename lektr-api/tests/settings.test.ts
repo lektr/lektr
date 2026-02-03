@@ -3,7 +3,7 @@
  * Tests for settings CRUD and validation
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 
 describe("Settings API Logic", () => {
   describe("Default Settings", () => {
@@ -22,7 +22,7 @@ describe("Settings API Logic", () => {
     test("should provide fallback when setting not in DB", () => {
       const dbSettings: Record<string, string> = {}; // Empty DB
       const key = "max_highlight_length";
-      
+
       const value = dbSettings[key] ?? DEFAULT_SETTINGS[key as keyof typeof DEFAULT_SETTINGS];
       expect(value).toBe("5000");
     });
@@ -33,7 +33,7 @@ describe("Settings API Logic", () => {
 
     test("should accept valid numeric values", () => {
       const validValues = ["100", "500", "5000", "10000"];
-      
+
       for (const value of validValues) {
         const parsed = parseInt(value, 10);
         expect(isNaN(parsed)).toBe(false);
@@ -43,7 +43,7 @@ describe("Settings API Logic", () => {
 
     test("should reject values below minimum (100)", () => {
       const invalidValues = ["0", "50", "99", "-1"];
-      
+
       for (const value of invalidValues) {
         const parsed = parseInt(value, 10);
         expect(parsed < 100).toBe(true);
@@ -52,7 +52,7 @@ describe("Settings API Logic", () => {
 
     test("should reject non-numeric values", () => {
       const invalidValues = ["abc", "", "12.5abc", "null"];
-      
+
       for (const value of invalidValues) {
         const parsed = parseInt(value, 10);
         expect(isNaN(parsed) || value !== String(parsed)).toBe(true);
@@ -67,25 +67,25 @@ describe("Settings API Logic", () => {
         max_note_length: "1000",
         display_collapse_length: "500",
       };
-      
+
       const dbSettings = [
         { key: "max_highlight_length", value: "3000" },
         // max_note_length not in DB
         { key: "display_collapse_length", value: "300" },
       ];
-      
+
       const result: Record<string, string> = {};
-      
+
       // Apply defaults
       for (const [key, value] of Object.entries(defaults)) {
         result[key] = value;
       }
-      
+
       // Override with DB values
       for (const setting of dbSettings) {
         result[setting.key] = setting.value;
       }
-      
+
       expect(result.max_highlight_length).toBe("3000"); // From DB
       expect(result.max_note_length).toBe("1000"); // From defaults
       expect(result.display_collapse_length).toBe("300"); // From DB
@@ -99,10 +99,10 @@ describe("Settings API Logic", () => {
         { id: "2", content: "A".repeat(600) },
         { id: "3", content: "B".repeat(1000) },
       ];
-      
+
       const newLimit = 500;
       const affected = highlights.filter(h => h.content.length > newLimit);
-      
+
       expect(affected).toHaveLength(2);
       expect(affected.map(h => h.id)).toEqual(["2", "3"]);
     });
@@ -112,10 +112,10 @@ describe("Settings API Logic", () => {
         { id: "1", content: "Short" },
         { id: "2", content: "Medium length content here" },
       ];
-      
+
       const newLimit = 5000;
       const affected = highlights.filter(h => h.content.length > newLimit);
-      
+
       expect(affected).toHaveLength(0);
     });
   });
@@ -135,7 +135,7 @@ describe("Settings API Logic", () => {
 
     test("should reject other string values", () => {
       const invalidValues = ["yes", "no", "1", "0", "enabled", "disabled", ""];
-      
+
       for (const value of invalidValues) {
         const isValid = value === "true" || value === "false";
         expect(isValid).toBe(false);
@@ -145,7 +145,7 @@ describe("Settings API Logic", () => {
     test("should default to 'true' when not set", () => {
       const DEFAULT_TELEMETRY = "true";
       const dbValue = null;
-      
+
       const result = dbValue ?? DEFAULT_TELEMETRY;
       expect(result).toBe("true");
     });

@@ -10,7 +10,7 @@ export interface Highlight {
   page: number | null;
   highlightedAt: Date | null;
   createdAt: Date;
-  updatedAt: Date;
+  syncedAt: Date; // Tracks when highlight was last synced (DB uses syncedAt, not updatedAt)
 }
 
 export interface ExportResult {

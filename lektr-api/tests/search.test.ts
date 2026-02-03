@@ -3,35 +3,35 @@
  * Tests for semantic search and embedding logic
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 
 describe("Search API Logic", () => {
   describe("Query Validation", () => {
     test("should reject empty query", () => {
       const query = "";
       const isValid = query.trim().length > 0;
-      
+
       expect(isValid).toBe(false);
     });
 
     test("should reject whitespace-only query", () => {
       const query = "   ";
       const isValid = query && query.trim().length > 0;
-      
+
       expect(isValid).toBe(false);
     });
 
     test("should accept valid query", () => {
       const query = "search terms";
       const isValid = query && query.trim().length > 0;
-      
+
       expect(isValid).toBe(true);
     });
 
     test("should trim whitespace from query", () => {
       const query = "  search terms  ";
       const trimmed = query.trim();
-      
+
       expect(trimmed).toBe("search terms");
     });
   });
@@ -40,21 +40,21 @@ describe("Search API Logic", () => {
     test("should default to 10 when not provided", () => {
       const limitParam = undefined;
       const limit = Math.min(parseInt(limitParam || "10"), 50);
-      
+
       expect(limit).toBe(10);
     });
 
     test("should cap limit at 50", () => {
       const limitParam = "100";
       const limit = Math.min(parseInt(limitParam || "10"), 50);
-      
+
       expect(limit).toBe(50);
     });
 
     test("should accept valid limit within range", () => {
       const limitParam = "25";
       const limit = Math.min(parseInt(limitParam || "10"), 50);
-      
+
       expect(limit).toBe(25);
     });
 
@@ -62,7 +62,7 @@ describe("Search API Logic", () => {
       const limitParam = "abc";
       const parsed = parseInt(limitParam || "10");
       const limit = isNaN(parsed) ? 10 : Math.min(parsed, 50);
-      
+
       expect(limit).toBe(10);
     });
   });
@@ -73,21 +73,21 @@ describe("Search API Logic", () => {
       // Cosine distance 2 = opposite (similarity -1)
       const cosineDistance = 0.3;
       const similarity = 1 - cosineDistance;
-      
+
       expect(similarity).toBe(0.7);
     });
 
     test("should handle perfect match (distance 0)", () => {
       const cosineDistance = 0;
       const similarity = 1 - cosineDistance;
-      
+
       expect(similarity).toBe(1);
     });
 
     test("should handle orthogonal vectors (distance 1)", () => {
       const cosineDistance = 1;
       const similarity = 1 - cosineDistance;
-      
+
       expect(similarity).toBe(0);
     });
   });
@@ -96,13 +96,13 @@ describe("Search API Logic", () => {
     test("should serialize embedding as JSON array", () => {
       const embedding = [0.1, 0.2, 0.3, 0.4];
       const serialized = JSON.stringify(embedding);
-      
+
       expect(serialized).toBe("[0.1,0.2,0.3,0.4]");
     });
 
     test("should handle 384-dimension embedding", () => {
       const embedding = Array(384).fill(0.1);
-      
+
       expect(embedding).toHaveLength(384);
       expect(typeof embedding[0]).toBe("number");
     });

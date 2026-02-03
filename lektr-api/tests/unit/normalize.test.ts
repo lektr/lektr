@@ -1,9 +1,9 @@
 /**
  * Normalize Utilities Unit Tests
- * 
+ *
  * Tests title and author normalization functions.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { normalizeTitle, normalizeAuthor, getTitleVariations } from "../../src/services/normalize";
 
 describe("normalizeTitle", () => {

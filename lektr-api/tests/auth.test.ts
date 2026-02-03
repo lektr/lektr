@@ -3,24 +3,24 @@
  * Tests for registration, login, logout, and session management
  */
 
-import { describe, test, expect, beforeEach, mock, spyOn } from "bun:test";
+import { describe, test, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 
 // Mock the database module before importing auth
 const mockDb = {
-  select: mock(() => mockDb),
-  from: mock(() => mockDb),
-  where: mock(() => mockDb),
-  limit: mock(() => Promise.resolve([])),
-  insert: mock(() => mockDb),
-  values: mock(() => mockDb),
-  returning: mock(() => Promise.resolve([{ id: "test-id", email: "test@example.com", role: "user" }])),
+  select: vi.fn(() => mockDb),
+  from: vi.fn(() => mockDb),
+  where: vi.fn(() => mockDb),
+  limit: vi.fn(() => Promise.resolve([])),
+  insert: vi.fn(() => mockDb),
+  values: vi.fn(() => mockDb),
+  returning: vi.fn(() => Promise.resolve([{ id: "test-id", email: "test@example.com", role: "user" }])),
 };
 
 // Mock bcrypt
 const mockBcrypt = {
-  hash: mock(() => Promise.resolve("hashed-password")),
-  compare: mock(() => Promise.resolve(true)),
+  hash: vi.fn(() => Promise.resolve("hashed-password")),
+  compare: vi.fn(() => Promise.resolve(true)),
 };
 
 // We'll test the auth logic directly since mocking the full app is complex
@@ -56,7 +56,6 @@ describe("Auth API Logic", () => {
   });
 
   describe("Password Hashing", () => {
-    // Use bcryptjs (pure JS) instead of bcrypt (native) for Bun compatibility
     test("bcrypt hash should not equal original password", async () => {
       const bcrypt = await import("bcryptjs");
       const password = "testpassword123";

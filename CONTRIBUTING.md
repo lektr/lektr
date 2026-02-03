@@ -97,11 +97,11 @@ _See `.antigravity/STYLEGUIDE.md` for full details._
 
 ### Testing
 
-We use Bun's built-in test runner for local development (tests still use `bun:test`).
+We use Vitest for running tests.
 
 ```bash
-# Run API tests (requires bun installed locally)
-cd lektr-api && bun test
+# Run API tests
+cd lektr-api && npm test
 ```
 
 Please add tests for any new logic or API endpoints.

@@ -1,14 +1,14 @@
 /**
  * Export Service Unit Tests
- * 
+ *
  * Tests the export service registry and core functionality.
  */
-import { describe, test, expect, beforeEach } from "bun:test";
+import { describe, test, expect, beforeEach } from "vitest";
 
 describe("ExportService", () => {
   // Test the service structure without actually importing it
   // This avoids DB connection issues in unit tests
-  
+
   describe("Provider Registry", () => {
     test("should be able to register a provider", () => {
       const providers = new Map();
@@ -20,21 +20,21 @@ describe("ExportService", () => {
         requiresAuth: false,
         export: async () => ({ type: "json" as const, message: "test" })
       };
-      
+
       providers.set(mockProvider.id, mockProvider);
-      
+
       expect(providers.has("test-provider")).toBe(true);
       expect(providers.get("test-provider")).toBe(mockProvider);
     });
 
     test("should list all registered providers", () => {
       const providers = new Map();
-      
+
       providers.set("json", { id: "json", name: "JSON" });
       providers.set("markdown", { id: "markdown", name: "Markdown" });
-      
+
       const list = Array.from(providers.values());
-      
+
       expect(list).toHaveLength(2);
       expect(list.map(p => p.id)).toContain("json");
       expect(list.map(p => p.id)).toContain("markdown");
@@ -42,7 +42,7 @@ describe("ExportService", () => {
 
     test("should return undefined for unknown provider", () => {
       const providers = new Map();
-      
+
       expect(providers.get("unknown")).toBeUndefined();
     });
   });
@@ -55,7 +55,7 @@ describe("ExportService", () => {
         includeNotes: true,
         includeTags: true,
       };
-      
+
       expect(options.userId).toBeTruthy();
       expect(Array.isArray(options.bookIds)).toBe(true);
     });
@@ -66,7 +66,7 @@ describe("ExportService", () => {
         includeNotes: true,
         includeTags: false,
       };
-      
+
       expect(options.bookIds).toBeUndefined();
       expect(options.userId).toBeTruthy();
     });
@@ -80,7 +80,7 @@ describe("ExportService", () => {
         filename: "export.json",
         contentType: "application/json"
       };
-      
+
       expect(result.type).toBe("file");
       expect(result.data).toBeTruthy();
     });
@@ -90,7 +90,7 @@ describe("ExportService", () => {
         type: "url" as const,
         url: "https://example.com/redirect"
       };
-      
+
       expect(result.type).toBe("url");
       expect(result.url).toContain("http");
     });
@@ -100,7 +100,7 @@ describe("ExportService", () => {
         type: "json" as const,
         message: "Export completed"
       };
-      
+
       expect(result.type).toBe("json");
       expect(result.message).toBeTruthy();
     });

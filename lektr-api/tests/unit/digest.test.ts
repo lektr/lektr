@@ -1,19 +1,19 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import { mockDb } from "../mocks/db";
 import { mockJobQueueService } from "../mocks/job-queue";
 
 // Mock dependencies
-mock.module("../../src/db", () => ({
+vi.mock("../../src/db", () => ({
   db: mockDb
 }));
 
-mock.module("../../src/services/job-queue", () => ({
+vi.mock("../../src/services/job-queue", () => ({
   jobQueueService: mockJobQueueService
 }));
 
 // Mock react-email render to avoid actual rendering
-mock.module("@react-email/render", () => ({
-  render: mock(() => Promise.resolve("<html>Mock Email</html>")),
+vi.mock("@react-email/render", () => ({
+  render: vi.fn(() => Promise.resolve("<html>Mock Email</html>")),
 }));
 
 describe("DigestService", () => {

@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import { mockDb } from "../mocks/db";
 import { mockEmailService } from "../mocks/email";
@@ -6,24 +6,24 @@ import { mockJobQueueService } from "../mocks/job-queue";
 import { mockDigestService } from "../mocks/digest";
 
 // Mock dependencies
-mock.module("../../src/db", () => ({
+vi.mock("../../src/db", () => ({
   db: mockDb
 }));
 
-mock.module("../../src/services/email", () => ({
+vi.mock("../../src/services/email", () => ({
   emailService: mockEmailService
 }));
 
-mock.module("../../src/services/job-queue", () => ({
+vi.mock("../../src/services/job-queue", () => ({
   jobQueueService: mockJobQueueService
 }));
 
-mock.module("../../src/services/digest", () => ({
+vi.mock("../../src/services/digest", () => ({
   digestService: mockDigestService
 }));
 
 // Mock Auth Middleware to inject user
-mock.module("../../src/middleware/auth", () => ({
+vi.mock("../../src/middleware/auth", () => ({
   authMiddleware: async (c: any, next: any) => {
     // Check header for user role simulation
     const role = c.req.header("x-mock-role") || "admin";
@@ -90,9 +90,9 @@ describe("Admin Email Routes", () => {
   });
 
   test("PUT /email-settings should update settings", async () => {
-    mockDb.insert = mock(() => ({
-      values: mock(() => ({
-        onConflictDoUpdate: mock(() => Promise.resolve([]))
+    mockDb.insert = vi.fn(() => ({
+      values: vi.fn(() => ({
+        onConflictDoUpdate: vi.fn(() => Promise.resolve([]))
       }))
     }));
 
@@ -113,9 +113,9 @@ describe("Admin Email Routes", () => {
   });
 
   test("PUT /email-settings should skip masked password", async () => {
-    mockDb.insert = mock(() => ({
-      values: mock(() => ({
-        onConflictDoUpdate: mock(() => Promise.resolve([]))
+    mockDb.insert = vi.fn(() => ({
+      values: vi.fn(() => ({
+        onConflictDoUpdate: vi.fn(() => Promise.resolve([]))
       }))
     }));
 
@@ -158,7 +158,7 @@ describe("Admin Email Routes", () => {
   });
 
   test("GET /job-queue/status should return status", async () => {
-    mockJobQueueService.getStatus = mock(() => Promise.resolve({
+    mockJobQueueService.getStatus = vi.fn(() => Promise.resolve({
       pending: 5,
       processing: 1,
       failed: 0,

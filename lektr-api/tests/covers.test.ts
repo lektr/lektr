@@ -1,16 +1,16 @@
 /**
  * Covers Route Tests
- * 
+ *
  * Tests for the cover image serving endpoint.
  * These are logic tests that verify the expected behavior.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 
 describe("Covers Route Logic", () => {
   describe("Content-Type Detection", () => {
     function getContentType(filename: string): string {
       const ext = filename.split('.').pop()?.toLowerCase();
-      return ext === 'png' ? 'image/png' : 
+      return ext === 'png' ? 'image/png' :
              ext === 'webp' ? 'image/webp' : 'image/jpeg';
     }
 

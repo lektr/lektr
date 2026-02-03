@@ -1,12 +1,12 @@
-import { mock } from "bun:test";
+import { vi } from "vitest";
 
 export const mockTransporter = {
-  sendMail: mock(() => Promise.resolve({ messageId: "test-id" })),
-  verify: mock(() => Promise.resolve(true)),
+  sendMail: vi.fn(() => Promise.resolve({ messageId: "test-id" })),
+  verify: vi.fn(() => Promise.resolve(true)),
 };
 
 export const mockNodemailer = {
-  createTransport: mock(() => mockTransporter),
+  createTransport: vi.fn<(config: Record<string, unknown>) => typeof mockTransporter>(() => mockTransporter),
 };
 
 export default mockNodemailer;

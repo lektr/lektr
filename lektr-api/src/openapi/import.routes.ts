@@ -7,8 +7,18 @@ import { ErrorSchema } from "./schemas";
 
 const PendingMetadataUpdateSchema = z.object({
   bookId: z.string(),
-  title: z.string(),
-  author: z.string().nullable(),
+  bookTitle: z.string(),
+  current: z.object({
+    coverImageUrl: z.string().nullable().optional(),
+    description: z.string().optional(),
+  }),
+  available: z.object({
+    coverImageUrl: z.string().optional(),
+    description: z.string().optional(),
+    pageCount: z.number().optional(),
+    publishedDate: z.string().optional(),
+    genres: z.array(z.string()).optional(),
+  }),
 }).openapi("PendingMetadataUpdate");
 
 const BookBreakdownSchema = z.object({

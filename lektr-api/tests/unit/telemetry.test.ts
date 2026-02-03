@@ -1,30 +1,30 @@
 /**
  * Telemetry Service Unit Tests
- * 
+ *
  * Tests the telemetry service behavior with mocked dependencies.
  */
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import { mockDb } from "../mocks/db";
 
 // Mock dependencies
-mock.module("../../src/db", () => ({ db: mockDb }));
+vi.mock("../../src/db", () => ({ db: mockDb }));
 
 // Mock getSetting to control telemetry_enabled
 let mockTelemetryEnabled = "true";
-mock.module("../../src/routes/settings", () => ({
-  getSetting: mock(async (key: string) => {
+vi.mock("../../src/routes/settings", () => ({
+  getSetting: vi.fn(async (key: string) => {
     if (key === "telemetry_enabled") return mockTelemetryEnabled;
     return null;
   })
 }));
 
-// Mock PostHog 
-const mockPostHogCapture = mock(() => {});
-const mockPostHogIdentify = mock(() => {});
-const mockPostHogShutdown = mock(() => Promise.resolve());
-const mockPostHogOn = mock(() => {});
+// Mock PostHog
+const mockPostHogCapture = vi.fn(() => {});
+const mockPostHogIdentify = vi.fn(() => {});
+const mockPostHogShutdown = vi.fn(() => Promise.resolve());
+const mockPostHogOn = vi.fn(() => {});
 
-mock.module("posthog-node", () => ({
+vi.mock("posthog-node", () => ({
   PostHog: class MockPostHog {
     capture = mockPostHogCapture;
     identify = mockPostHogIdentify;
@@ -88,7 +88,7 @@ describe("TelemetryService", () => {
       mockDb.$setResponse([{ count: 10 }]);
 
       const stats = await telemetryService.getTelemetryStats();
-      
+
       expect(stats).toHaveProperty("totalBooks");
       expect(stats).toHaveProperty("totalHighlights");
       expect(stats).toHaveProperty("totalTags");
@@ -98,7 +98,7 @@ describe("TelemetryService", () => {
       mockDb.$setResponse([{ count: 5 }]);
 
       const stats = await telemetryService.getTelemetryStats();
-      
+
       expect(typeof stats.totalBooks).toBe("number");
       expect(typeof stats.totalHighlights).toBe("number");
       expect(typeof stats.totalTags).toBe("number");

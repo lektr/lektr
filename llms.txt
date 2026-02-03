@@ -17,7 +17,7 @@ Lektr is an open-source knowledge preservation engine for avid readers who want 
 
 ## Technical Stack
 
-- **Runtime**: Bun
+- **Runtime**: Node.js
 - **Backend**: Hono.js + Drizzle ORM
 - **Database**: PostgreSQL with pgvector extension
 - **Frontend**: Next.js 16, Tailwind CSS, Framer Motion

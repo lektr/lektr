@@ -9,7 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "types": ["bun-types"],
+    "types": ["node", "vitest/globals"],
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
