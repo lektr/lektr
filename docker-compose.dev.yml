@@ -52,6 +52,8 @@ services:
       POSTGRES_PORT: 5432
       CORS_ORIGINS: "http://localhost:3002,http://localhost"
       HARDCOVER_API_KEY: ${HARDCOVER_API_KEY:-}
+      # HuggingFace cache for embedding models
+      HF_HOME: /app/.cache/huggingface
     ports:
       - "3001:3001"
     volumes:
@@ -64,6 +66,8 @@ services:
       - ./.env:/app/.env:ro
       # Persist downloaded covers
       - api_covers:/app/lektr-api/data/covers
+      # Persist HuggingFace model cache (embeddings)
+      - hf_cache:/app/.cache/huggingface
     depends_on:
       db:
         condition: service_healthy
@@ -122,6 +126,8 @@ volumes:
     name: lektr_ui_next_cache
   api_covers:
     name: lektr_api_covers
+  hf_cache:
+    name: lektr_hf_cache
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Utility Commands (run with: docker compose -f docker-compose.dev.yml run --rm <command>)

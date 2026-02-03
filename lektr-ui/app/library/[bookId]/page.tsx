@@ -21,7 +21,7 @@ export default function BookDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
-  
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditBook, setShowEditBook] = useState(false);
   const [highlightToDelete, setHighlightToDelete] = useState<{ id: string; preview: string } | null>(null);
@@ -36,7 +36,7 @@ export default function BookDetailPage() {
     queryFn: getSettings,
     staleTime: 5 * 60 * 1000,
   });
-  
+
   const COLLAPSE_LENGTH = parseInt(settingsData?.settings?.display_collapse_length?.value || "500", 10);
 
   const { data, isLoading, error } = useQuery({
@@ -112,8 +112,8 @@ export default function BookDetailPage() {
     <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 pt-6 pb-8 sm:pt-8 sm:pb-12 animate-fade-in">
       {/* Top Navigation / Breadcrumbs */}
       <div className="flex items-center gap-4 mb-8">
-        <Link 
-          href="/library" 
+        <Link
+          href="/library"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50 -ml-3"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -126,7 +126,7 @@ export default function BookDetailPage() {
         <aside className="space-y-6 md:sticky md:top-24">
           <div className="relative group">
             <BookCover book={book} />
-            
+
             {/* Quick Stats Overlay (Desktop) */}
             <div className="absolute top-3 right-3 md:right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
               {highlights.length}
@@ -138,7 +138,7 @@ export default function BookDetailPage() {
                 {book.sourceType && (
                   <div className="text-sm font-medium text-muted-foreground flex items-center justify-center md:justify-start gap-2">
                     <span className="w-2 h-2 rounded-full bg-primary/60"></span>
-                    {book.sourceType === 'web' ? 'Web Highlight' : 
+                    {book.sourceType === 'web' ? 'Web Highlight' :
                      book.sourceType === 'kindle' ? 'Kindle Import' :
                      book.sourceType === 'koreader' ? 'KOReader Import' :
                      book.sourceType === 'readwise' ? 'Readwise Import' :
@@ -161,7 +161,7 @@ export default function BookDetailPage() {
                 + Tag
               </button>
             </div>
-            
+
 
           </div>
         </aside>
@@ -171,12 +171,12 @@ export default function BookDetailPage() {
           {/* Header Actions */}
           <div className="flex flex-col gap-6 mb-8">
              <div className="w-full">
-                <h1 
+                <h1
                   className={`font-serif font-bold tracking-tight text-foreground mb-2 leading-tight break-words ${
-                    book.title.length > 100 
-                      ? "text-2xl sm:text-3xl md:text-4xl" 
-                      : book.title.length > 60 
-                        ? "text-3xl sm:text-4xl md:text-5xl" 
+                    book.title.length > 100
+                      ? "text-2xl sm:text-3xl md:text-4xl"
+                      : book.title.length > 60
+                        ? "text-3xl sm:text-4xl md:text-5xl"
                         : "text-4xl sm:text-5xl md:text-6xl"
                   }`}
                   style={{ wordBreak: 'break-word' }}
@@ -187,7 +187,7 @@ export default function BookDetailPage() {
                   {book.author || "Unknown Author"}
                 </p>
              </div>
-             
+
              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Link href={`/review`} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors cursor-pointer">
                   <span className="text-lg">🧠</span> <span>Review</span>
@@ -200,9 +200,9 @@ export default function BookDetailPage() {
                   <Download className="w-4 h-4" />
                   <span>Export</span>
                 </button>
-                
+
                 <div className="w-px h-6 bg-border mx-1 hidden sm:block" />
-                
+
                 <button
                   onClick={() => setShowEditBook(true)}
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground bg-muted/50 hover:bg-muted rounded-full transition-colors cursor-pointer"
@@ -296,7 +296,7 @@ export default function BookDetailPage() {
         bookIds={[bookId]}
         bookTitle={book.title}
       />
-      
+
       {tagSelectorHighlight && (
         <TagSelector
           highlightId={tagSelectorHighlight}
@@ -310,13 +310,13 @@ export default function BookDetailPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-card rounded-2xl p-6 max-w-sm w-full shadow-xl border border-border">
-            <h3 className="text-lg font-serif font-bold mb-2">Delete Book?</h3>
+            <h3 className="text-lg font-serif font-bold mb-2">Move to Trash?</h3>
             <p className="text-muted-foreground text-sm mb-6">
-              This will permanently delete "{book.title}" and all {highlights.length} highlights. This action cannot be undone.
+              All {highlights.length} highlights from "{book.title}" will be moved to Trash. You can restore them later from the Trash page.
             </p>
             <div className="flex gap-3 justify-end">
-              <button 
-                onClick={() => setShowDeleteConfirm(false)} 
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2 text-sm font-medium rounded-full bg-muted/50 hover:bg-muted text-foreground transition-colors cursor-pointer"
               >
                 Cancel
@@ -326,7 +326,7 @@ export default function BookDetailPage() {
                 disabled={deleteBookMutation.isPending}
                 className="px-4 py-2 text-sm font-medium rounded-full bg-error text-white hover:bg-error/90 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                {deleteBookMutation.isPending ? "Deleting..." : "Delete Permanently"}
+                {deleteBookMutation.isPending ? "Moving..." : "Move to Trash"}
               </button>
             </div>
           </div>
@@ -342,8 +342,8 @@ export default function BookDetailPage() {
               <p className="text-sm italic text-muted-foreground line-clamp-3">"{highlightToDelete.preview}"</p>
             </div>
             <div className="flex gap-3 justify-end">
-              <button 
-                onClick={() => setHighlightToDelete(null)} 
+              <button
+                onClick={() => setHighlightToDelete(null)}
                 className="px-4 py-2 text-sm font-medium rounded-full bg-muted/50 hover:bg-muted text-foreground transition-colors cursor-pointer"
               >
                 Cancel

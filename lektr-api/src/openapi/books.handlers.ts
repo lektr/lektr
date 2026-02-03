@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { db } from "../db";
 import { books as booksTable, highlights, tags, highlightTags, bookTags } from "../db/schema";
-import { eq, count, max } from "drizzle-orm";
+import { eq, count, max, isNull, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getSetting } from "../routes/settings";
 import {
@@ -13,6 +13,8 @@ import {
   deleteBookRoute,
   deleteHighlightRoute,
   togglePinRoute,
+  restoreHighlightRoute,
+  hardDeleteHighlightRoute,
 } from "./books.routes";
 
 export const booksOpenAPI = new OpenAPIHono();
@@ -40,19 +42,19 @@ booksOpenAPI.openapi(listBooksRoute, async (c) => {
   const booksWithCounts = await Promise.all(
     userBooks.map(async (book) => {
       const [result] = await db
-        .select({ 
+        .select({
           count: count(),
           lastHighlightedAt: max(highlights.highlightedAt),
         })
         .from(highlights)
-        .where(eq(highlights.bookId, book.id));
-      
+        .where(and(eq(highlights.bookId, book.id), isNull(highlights.deletedAt)));
+
       const bookTagsList = await db
         .select({ id: tags.id, name: tags.name, color: tags.color })
         .from(bookTags)
         .innerJoin(tags, eq(bookTags.tagId, tags.id))
         .where(eq(bookTags.bookId, book.id));
-      
+
       return {
         ...book,
         createdAt: book.createdAt.toISOString(),
@@ -77,6 +79,8 @@ booksOpenAPI.openapi(listBooksRoute, async (c) => {
 booksOpenAPI.openapi(getBookRoute, async (c) => {
   const user = c.get("user");
   const { id: bookId } = c.req.valid("param");
+  const { includeDeleted } = c.req.valid("query");
+  const shouldIncludeDeleted = includeDeleted === "true";
 
   const [book] = await db.select().from(booksTable).where(eq(booksTable.id, bookId)).limit(1);
 
@@ -91,7 +95,11 @@ booksOpenAPI.openapi(getBookRoute, async (c) => {
   const bookHighlights = await db
     .select()
     .from(highlights)
-    .where(eq(highlights.bookId, bookId))
+    .where(
+      shouldIncludeDeleted
+        ? eq(highlights.bookId, bookId)
+        : and(eq(highlights.bookId, bookId), isNull(highlights.deletedAt))
+    )
     .orderBy(highlights.page);
 
   const highlightsWithTags = await Promise.all(
@@ -101,7 +109,7 @@ booksOpenAPI.openapi(getBookRoute, async (c) => {
         .from(highlightTags)
         .innerJoin(tags, eq(highlightTags.tagId, tags.id))
         .where(eq(highlightTags.highlightId, highlight.id));
-      
+
       return {
         id: highlight.id,
         bookId: highlight.bookId,
@@ -269,11 +277,15 @@ booksOpenAPI.openapi(deleteBookRoute, async (c) => {
     return c.json({ error: "Not authorized" }, 403);
   }
 
-  await db.delete(highlights).where(eq(highlights.bookId, bookId));
-  await db.delete(booksTable).where(eq(booksTable.id, bookId));
+  // Soft-delete all highlights in the book (set deletedAt)
+  const now = new Date();
+  await db.update(highlights)
+    .set({ deletedAt: now })
+    .where(eq(highlights.bookId, bookId));
 
-  return c.json({ success: true, message: "Book and highlights deleted" }, 200);
+  return c.json({ success: true, message: "Book highlights moved to trash" }, 200);
 });
+
 
 // DELETE /:bookId/highlights/:highlightId - Delete highlight
 booksOpenAPI.openapi(deleteHighlightRoute, async (c) => {
@@ -300,7 +312,8 @@ booksOpenAPI.openapi(deleteHighlightRoute, async (c) => {
     return c.json({ error: "Highlight does not belong to this book" }, 400);
   }
 
-  await db.delete(highlights).where(eq(highlights.id, highlightId));
+  // Soft delete: set deletedAt instead of removing the row
+  await db.update(highlights).set({ deletedAt: new Date() }).where(eq(highlights.id, highlightId));
 
   return c.json({ success: true, message: "Highlight deleted" }, 200);
 });
@@ -333,4 +346,67 @@ booksOpenAPI.openapi(togglePinRoute, async (c) => {
     pinned: newPinnedAt !== null,
     pinnedAt: newPinnedAt?.toISOString() ?? null,
   }, 200);
+});
+
+// PATCH /highlights/:highlightId/restore - Restore soft-deleted highlight
+booksOpenAPI.openapi(restoreHighlightRoute, async (c) => {
+  const user = c.get("user");
+  const { highlightId } = c.req.valid("param");
+
+  const [highlight] = await db
+    .select({
+      id: highlights.id,
+      bookId: highlights.bookId,
+      deletedAt: highlights.deletedAt,
+    })
+    .from(highlights)
+    .where(eq(highlights.id, highlightId))
+    .limit(1);
+
+  if (!highlight) {
+    return c.json({ error: "Highlight not found" }, 404);
+  }
+
+  // Check book ownership
+  const [book] = await db.select().from(booksTable).where(eq(booksTable.id, highlight.bookId)).limit(1);
+
+  if (!book || book.userId !== user.userId) {
+    return c.json({ error: "Not authorized" }, 403);
+  }
+
+  // Restore: set deletedAt to null
+  await db.update(highlights).set({ deletedAt: null }).where(eq(highlights.id, highlightId));
+
+  return c.json({ success: true, message: "Highlight restored" }, 200);
+});
+
+// DELETE /highlights/:highlightId/permanent - Permanently delete highlight
+booksOpenAPI.openapi(hardDeleteHighlightRoute, async (c) => {
+  const user = c.get("user");
+  const { highlightId } = c.req.valid("param");
+
+  const [highlight] = await db
+    .select({
+      id: highlights.id,
+      bookId: highlights.bookId,
+    })
+    .from(highlights)
+    .where(eq(highlights.id, highlightId))
+    .limit(1);
+
+  if (!highlight) {
+    return c.json({ error: "Highlight not found" }, 404);
+  }
+
+  // Check book ownership
+  const [book] = await db.select().from(booksTable).where(eq(booksTable.id, highlight.bookId)).limit(1);
+
+  if (!book || book.userId !== user.userId) {
+    return c.json({ error: "Not authorized" }, 403);
+  }
+
+  // Hard delete: remove the row
+  await db.delete(highlights).where(eq(highlights.id, highlightId));
+
+  return c.json({ success: true, message: "Highlight permanently deleted" }, 200);
 });

@@ -816,3 +816,63 @@ export async function sendTestEmail(email: string): Promise<{ success: boolean; 
   return data;
 }
 
+// Trash API
+export interface DeletedHighlight {
+  id: string;
+  bookId: string;
+  bookTitle: string;
+  bookAuthor: string | null;
+  content: string;
+  note: string | null;
+  chapter: string | null;
+  page: number | null;
+  deletedAt: string;
+  highlightedAt: string | null;
+}
+
+export async function getDeletedHighlights(): Promise<{ highlights: DeletedHighlight[] }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/trash`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch trash");
+  }
+
+  return response.json();
+}
+
+export async function restoreHighlight(highlightId: string): Promise<{ success: boolean }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/books/highlights/${highlightId}/restore`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to restore highlight");
+  }
+
+  return response.json();
+}
+
+export async function hardDeleteHighlight(highlightId: string): Promise<{ success: boolean }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/books/highlights/${highlightId}/permanent`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to permanently delete highlight");
+  }
+
+  return response.json();
+}

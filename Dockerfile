@@ -95,6 +95,18 @@ RUN npm install --include=optional onnxruntime-node
 RUN mkdir -p /app/.cache/huggingface
 ENV HF_HOME=/app/.cache/huggingface
 
+# Pre-download the embedding model during build so it's available immediately at runtime
+# This runs a simple Node script that loads the model, triggering the download
+RUN cd /app/lektr-api && node -e "\
+    const { pipeline, env } = require('@huggingface/transformers'); \
+    env.cacheDir = '/app/.cache/huggingface'; \
+    env.allowRemoteModels = true; \
+    (async () => { \
+    console.log('Pre-downloading embedding model...'); \
+    await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2'); \
+    console.log('Model downloaded successfully!'); \
+    })();"
+
 # Expose Nginx port
 EXPOSE 80
 

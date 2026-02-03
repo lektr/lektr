@@ -54,25 +54,30 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       # Optional API keys
       HARDCOVER_API_KEY: ${HARDCOVER_API_KEY:-}
+      # HuggingFace cache for embedding models
+      HF_HOME: /app/.cache/huggingface
     ports:
       - "${LEKTR_PORT:-80}:80"
     depends_on:
       db:
         condition: service_healthy
-    # Persist downloaded covers
+    # Persist downloaded covers and model cache
     volumes:
       - api_covers:/app/lektr-api/data/covers
+      - hf_cache:/app/.cache/huggingface
     # Resource limits to prevent system freeze
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: '3.0'
-        reservations:
-          memory: 1G
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4G
+    #       cpus: '3.0'
+    #     reservations:
+    #       memory: 1G
 
 volumes:
   pgdata:
     name: lektr_pgdata
   api_covers:
     name: lektr_api_covers
+  hf_cache:
+    name: lektr_hf_cache

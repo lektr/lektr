@@ -28,6 +28,10 @@ WORKDIR /app/lektr-api
 COPY lektr-api/package.json ./
 RUN npm install
 
+# Create HuggingFace cache directory for embedding models
+RUN mkdir -p /app/.cache/huggingface
+ENV HF_HOME=/app/.cache/huggingface
+
 # Install UI dependencies
 WORKDIR /app/lektr-ui
 COPY lektr-ui/package.json ./

@@ -106,6 +106,7 @@ export const highlights = pgTable("highlights", {
     .references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   originalContent: text("original_content"), // Immutable original imported text
+  contentHash: text("content_hash"), // Stable hash for deduplication
   sourceUrl: text("source_url"),
   note: text("note"),
   chapter: text("chapter"),
@@ -114,6 +115,7 @@ export const highlights = pgTable("highlights", {
   embedding: vector("embedding", { dimensions: 384 }),
   fsrsCard: jsonb("fsrs_card"),
   highlightedAt: timestamp("highlighted_at", { withTimezone: true }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete marker
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

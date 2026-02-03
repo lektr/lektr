@@ -10,7 +10,7 @@ import { ExportModal } from "@/components/export-modal";
 import { PageHeader } from "@/components/page-header";
 import { BookTagSelector } from "@/components/book-tag-selector";
 import { BookCard } from "@/components/book-card";
-import { Tag, Pin, Download, Upload, Search, ArrowUpDown, LayoutGrid, List } from "lucide-react";
+import { Tag, Pin, Download, Upload, Search, ArrowUpDown, LayoutGrid, List, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SortOption = "recent" | "title" | "author" | "highlights";
@@ -22,7 +22,7 @@ export default function LibraryPage() {
   const queryClient = useQueryClient();
   const [tagSelectorBookId, setTagSelectorBookId] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
-  
+
   // Controls state - initialize from localStorage
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>(() => {
@@ -37,16 +37,16 @@ export default function LibraryPage() {
     }
     return "grid";
   });
-  
+
   // Persist preferences to localStorage
   useEffect(() => {
     localStorage.setItem("library-sort", sortBy);
   }, [sortBy]);
-  
+
   useEffect(() => {
     localStorage.setItem("library-view", view);
   }, [view]);
-  
+
   // Lazy loading state
   const [visibleCount, setVisibleCount] = useState(BOOKS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -60,7 +60,7 @@ export default function LibraryPage() {
   // Client-side filtering and sorting
   const filteredBooks = useMemo(() => {
     if (!data?.books) return [];
-    
+
     // Filter out books with no highlights
     let result = data.books.filter((b) => b.highlightCount > 0);
 
@@ -85,7 +85,7 @@ export default function LibraryPage() {
       if (aPinned && bPinned) {
         return new Date(b.pinnedAt!).getTime() - new Date(a.pinnedAt!).getTime();
       }
-      
+
       // Then apply regular sort
       switch (sortBy) {
         case "recent":
@@ -200,6 +200,13 @@ export default function LibraryPage() {
           }
           actions={
             <>
+              <Link
+                href="/trash"
+                className="btn btn-secondary px-4 h-10"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Trash</span>
+              </Link>
               <button
                 onClick={() => setShowExportModal(true)}
                 className="btn btn-secondary px-4 h-10 cursor-pointer"
@@ -207,8 +214,8 @@ export default function LibraryPage() {
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export All</span>
               </button>
-              <Link 
-                href="/sync" 
+              <Link
+                href="/sync"
                 className="btn btn-primary px-4 h-10"
               >
                 <Upload className="w-4 h-4" />
@@ -258,8 +265,8 @@ export default function LibraryPage() {
                   onClick={() => setView("grid")}
                   className={cn(
                     "!w-8 !h-8 !min-w-0 !min-h-0 !p-0 flex items-center justify-center rounded-full transition-all cursor-pointer",
-                    view === "grid" 
-                      ? "bg-background text-primary shadow-sm" 
+                    view === "grid"
+                      ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   title="Grid view"
@@ -270,8 +277,8 @@ export default function LibraryPage() {
                   onClick={() => setView("list")}
                   className={cn(
                     "!w-8 !h-8 !min-w-0 !min-h-0 !p-0 flex items-center justify-center rounded-full transition-all cursor-pointer",
-                    view === "list" 
-                      ? "bg-background text-primary shadow-sm" 
+                    view === "list"
+                      ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   title="List view"
@@ -294,7 +301,7 @@ export default function LibraryPage() {
               {searchQuery ? `No matches for "${searchQuery}"` : "Your library is empty"}
             </p>
             {searchQuery ? (
-              <button 
+              <button
                 onClick={() => setSearchQuery("")}
                 className="btn btn-secondary"
               >
@@ -309,8 +316,8 @@ export default function LibraryPage() {
         ) : (
           <>
             <div className={`animate-fade-in ${
-              view === "grid" 
-                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6" 
+              view === "grid"
+                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
                 : "space-y-3"
             }`}>
               {visibleBooks.map((book) => (
@@ -352,8 +359,8 @@ export default function LibraryPage() {
                       <button
                         onClick={handlePinClick(book.id)}
                         className={`!w-8 !h-8 !min-w-0 !min-h-0 !p-0 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
-                          book.pinnedAt 
-                            ? "bg-primary text-primary-foreground border-primary hover:bg-primary/80" 
+                          book.pinnedAt
+                            ? "bg-primary text-primary-foreground border-primary hover:bg-primary/80"
                             : "bg-muted/50 text-foreground border-transparent hover:bg-muted"
                         }`}
                         title={book.pinnedAt ? "Unpin" : "Pin to top"}
@@ -373,10 +380,10 @@ export default function LibraryPage() {
                 )
               ))}
             </div>
-            
+
             {/* Lazy load sentinel & indicator */}
             {hasMore && (
-              <div 
+              <div
                 ref={sentinelRef}
                 className="flex justify-center py-8"
               >
@@ -386,7 +393,7 @@ export default function LibraryPage() {
                 </div>
               </div>
             )}
-            
+
             {!hasMore && filteredBooks.length > BOOKS_PER_PAGE && (
               <p className="text-center text-muted-foreground text-sm py-6">
                 Showing all {filteredBooks.length} books
@@ -402,7 +409,7 @@ export default function LibraryPage() {
             onClose={() => setTagSelectorBookId(null)}
           />
         )}
-        
+
         <ExportModal
           isOpen={showExportModal}
           onClose={() => setShowExportModal(false)}

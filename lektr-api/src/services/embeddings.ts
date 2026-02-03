@@ -38,10 +38,34 @@ class EmbeddingService {
     console.log(`🧠 Cache directory: ${env.cacheDir || 'default'}`);
     console.log(`🧠 Platform: ${process.platform} / ${process.arch}`);
 
+    // Check if cache directory exists and is writable
+    const fs = await import('fs');
+    const cacheDir = env.cacheDir || '/tmp/hf-cache';
+    try {
+      if (!fs.existsSync(cacheDir)) {
+        console.log(`🧠 Creating cache directory: ${cacheDir}`);
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      fs.accessSync(cacheDir, fs.constants.W_OK);
+      console.log(`🧠 Cache directory is writable`);
+    } catch (err) {
+      console.error(`🧠 Cache directory issue:`, err);
+    }
+
     // Minimal configuration - let the library handle defaults
     this.loadingPromise = (async () => {
       try {
-        const pipe = await pipeline("feature-extraction", this.modelName);
+        const pipe = await pipeline("feature-extraction", this.modelName, {
+          progress_callback: (progress: any) => {
+            if (progress.status === 'download') {
+              console.log(`🧠 Downloading: ${progress.file} (${Math.round(progress.progress || 0)}%)`);
+            } else if (progress.status === 'done') {
+              console.log(`🧠 Download complete: ${progress.file}`);
+            } else if (progress.status === 'ready') {
+              console.log(`🧠 Model ready`);
+            }
+          }
+        });
         console.log(`🧠 Embedding model loaded successfully`);
         return pipe as FeatureExtractionPipeline;
       } catch (error) {

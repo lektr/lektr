@@ -18,6 +18,7 @@ import { tagsOpenAPI } from "./openapi/tags.handlers";
 import { reviewOpenAPI } from "./openapi/review.handlers";
 import { searchOpenAPI } from "./openapi/search.handlers";
 import { importOpenAPI } from "./openapi/import.handlers";
+import { trashOpenAPI } from "./openapi/trash.handlers";
 
 import { runMigrations } from "./db";
 import { seedDatabase } from "./db/seed";
@@ -79,6 +80,7 @@ app.route("/api/v1/tags", tagsOpenAPI);
 app.route("/api/v1/review", reviewOpenAPI);
 app.route("/api/v1/search", searchOpenAPI);
 app.route("/api/v1/import", importOpenAPI);
+app.route("/api/v1/trash", trashOpenAPI);
 
 // Legacy routes (covers, settings, and admin)
 app.route("/api/v1/covers", covers);

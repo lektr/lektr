@@ -108,6 +108,9 @@ export const getBookRoute = createRoute({
   security: [{ cookieAuth: [] }],
   request: {
     params: z.object({ id: z.string().openapi({ example: "abc123" }) }),
+    query: z.object({
+      includeDeleted: z.string().optional().openapi({ param: { description: "Include soft-deleted highlights", example: "true" } }),
+    }),
   },
   responses: {
     200: {
@@ -298,6 +301,64 @@ export const togglePinRoute = createRoute({
     },
     404: {
       description: "Book not found",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Not authorized",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+// Restore Highlight Route (undo soft delete)
+export const restoreHighlightRoute = createRoute({
+  method: "patch",
+  path: "/highlights/{highlightId}/restore",
+  tags: ["Highlights"],
+  summary: "Restore deleted highlight",
+  description: "Restore a soft-deleted highlight back to active state.",
+  security: [{ cookieAuth: [] }],
+  request: {
+    params: z.object({
+      highlightId: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Highlight restored",
+      content: { "application/json": { schema: SuccessResponseSchema } },
+    },
+    404: {
+      description: "Highlight not found",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Not authorized",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+// Hard Delete Highlight Route (permanent deletion)
+export const hardDeleteHighlightRoute = createRoute({
+  method: "delete",
+  path: "/highlights/{highlightId}/permanent",
+  tags: ["Highlights"],
+  summary: "Permanently delete highlight",
+  description: "Permanently delete a highlight. This action cannot be undone.",
+  security: [{ cookieAuth: [] }],
+  request: {
+    params: z.object({
+      highlightId: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Highlight permanently deleted",
+      content: { "application/json": { schema: SuccessResponseSchema } },
+    },
+    404: {
+      description: "Highlight not found",
       content: { "application/json": { schema: ErrorSchema } },
     },
     403: {

@@ -28,7 +28,7 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
 
   // RRF constant (standard value)
   const RRF_K = 60;
-  
+
   // Fetch more results than needed for better fusion (we'll trim later)
   const fetchLimit = Math.min(limit * 3, 100);
 
@@ -39,7 +39,7 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
   }
 
   // Prepare tag filter clause
-  const tagFilterClause = filterTagIds.length > 0 
+  const tagFilterClause = filterTagIds.length > 0
     ? sql`AND (
         EXISTS (SELECT 1 FROM highlight_tags ht WHERE ht.highlight_id = h.id AND ht.tag_id = ANY(${`{${filterTagIds.join(",")}}`}::uuid[]))
         OR EXISTS (SELECT 1 FROM book_tags bt WHERE bt.book_id = h.book_id AND bt.tag_id = ANY(${`{${filterTagIds.join(",")}}`}::uuid[]))
@@ -53,8 +53,8 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
       SELECT h.id, h.content, h.chapter, h.page, h.book_id, b.title as book_title, b.author as book_author, b.cover_image_url,
         1 - (h.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as semantic_score
       FROM highlights h JOIN books b ON h.book_id = b.id
-      WHERE h.user_id = ${user.userId} AND h.embedding IS NOT NULL ${tagFilterClause}
-      ORDER BY h.embedding <=> ${JSON.stringify(queryEmbedding)}::vector 
+      WHERE h.user_id = ${user.userId} AND h.embedding IS NOT NULL AND h.deleted_at IS NULL ${tagFilterClause}
+      ORDER BY h.embedding <=> ${JSON.stringify(queryEmbedding)}::vector
       LIMIT ${fetchLimit}
     `),
     // Keyword search (PostgreSQL full-text search)
@@ -65,8 +65,9 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
           plainto_tsquery('english', ${query})
         ) as keyword_score
       FROM highlights h JOIN books b ON h.book_id = b.id
-      WHERE h.user_id = ${user.userId} 
-        AND to_tsvector('english', coalesce(h.content, '') || ' ' || coalesce(b.title, '') || ' ' || coalesce(b.author, '')) 
+      WHERE h.user_id = ${user.userId}
+        AND h.deleted_at IS NULL
+        AND to_tsvector('english', coalesce(h.content, '') || ' ' || coalesce(b.title, '') || ' ' || coalesce(b.author, ''))
             @@ plainto_tsquery('english', ${query})
         ${tagFilterClause}
       ORDER BY keyword_score DESC
@@ -101,11 +102,11 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
 
   // Calculate RRF scores
   const rrfResults: Array<{ row: any; rrfScore: number; semanticRank: number | null; keywordRank: number | null }> = [];
-  
+
   for (const [id, row] of allResultsMap) {
     const semanticRank = semanticRankMap.get(id);
     const keywordRank = keywordRankMap.get(id);
-    
+
     // RRF formula: sum of 1/(k+rank) for each ranking
     let rrfScore = 0;
     if (semanticRank !== undefined) {
@@ -114,13 +115,13 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
     if (keywordRank !== undefined) {
       rrfScore += 1 / (RRF_K + keywordRank);
     }
-    
+
     rrfResults.push({ row, rrfScore, semanticRank: semanticRank ?? null, keywordRank: keywordRank ?? null });
   }
 
   // Sort by RRF score descending
   rrfResults.sort((a, b) => b.rrfScore - a.rrfScore);
-  
+
   // Take top N results
   const topResults = rrfResults.slice(0, limit);
   const rows = topResults.map(r => r.row);
@@ -162,11 +163,11 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
   // Merge tags and build final results
   const filterTagIdSet = new Set(filterTagIds);
   const tagCounts = new Map<string, { id: string; name: string; color: string | null; count: number }>();
-  
+
   const resultsWithTags = topResults.map(({ row, rrfScore, keywordRank }) => {
     const highlightTags = highlightTagsMap.get(row.id) || [];
     const bookTags = bookTagsMap.get(row.book_id) || [];
-    
+
     // Merge and deduplicate tags
     const tagMap = new Map<string, { id: string; name: string; color: string | null }>();
     for (const tag of highlightTags) tagMap.set(tag.id, tag);
@@ -174,34 +175,34 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
       if (!tagMap.has(tag.id)) tagMap.set(tag.id, tag);
     }
     const mergedTags = Array.from(tagMap.values());
-    
+
     // Count for relatedTags
     for (const tag of mergedTags) {
       const existing = tagCounts.get(tag.id);
       if (existing) existing.count++;
       else tagCounts.set(tag.id, { ...tag, count: 1 });
     }
-    
+
     const hasMatchingTag = filterTagIds.length > 0 && mergedTags.some(t => filterTagIdSet.has(t.id));
-    
+
     // Normalize RRF score to 0-1 range for display (max possible is ~0.033 for rank 1 in both)
     const normalizedScore = Math.min(rrfScore * 30, 1.0);
-    
+
     return {
-      id: row.id, 
-      content: row.content, 
-      chapter: row.chapter, 
+      id: row.id,
+      content: row.content,
+      chapter: row.chapter,
       page: row.page,
-      bookId: row.book_id, 
-      bookTitle: row.book_title, 
+      bookId: row.book_id,
+      bookTitle: row.book_title,
       bookAuthor: row.book_author,
-      coverImageUrl: row.cover_image_url, 
-      similarity: normalizedScore, 
-      tags: mergedTags, 
+      coverImageUrl: row.cover_image_url,
+      similarity: normalizedScore,
+      tags: mergedTags,
       tagBoost: keywordRank !== null, // Indicate if keyword match contributed
     };
   });
-  
+
   const relatedTags = Array.from(tagCounts.values()).sort((a, b) => b.count - a.count).slice(0, 10);
 
   return c.json({ query, filterTagIds, results: resultsWithTags, relatedTags }, 200);
@@ -210,7 +211,7 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
 // POST /generate-embeddings - Queue embedding generation
 searchOpenAPI.openapi(generateEmbeddingsRoute, async (c) => {
   const user = c.get("user");
-  
+
   const results = await db.execute(sql`
     SELECT h.id, h.content FROM highlights h
     WHERE h.user_id = ${user.userId} AND h.embedding IS NULL LIMIT 500
@@ -227,7 +228,7 @@ searchOpenAPI.openapi(generateEmbeddingsRoute, async (c) => {
 // GET /status - Get embedding status
 searchOpenAPI.openapi(getEmbeddingStatusRoute, async (c) => {
   const user = c.get("user");
-  
+
   const results = await db.execute(sql`
     SELECT COUNT(*) FILTER (WHERE embedding IS NOT NULL) as with_embeddings,
            COUNT(*) FILTER (WHERE embedding IS NULL) as without_embeddings
