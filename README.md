@@ -49,14 +49,18 @@ graph LR
 
 Bring all your reading notes into one place. Lektr supports:
 
-- **Kindle** (`My Clippings.txt`)
-- **KOReader** (metadata JSON export)
+- **Kindle** (`My Clippings.txt`, Auto Sync)
+- **KOReader** (metadata JSON export via plugin)
 - **Readwise** (CSV export)
+- **Browser Extension** (Save web highlights)
 - **Manual Entry**
 
-### 2. Review Daily
+### 2. Review & Retain
 
-Lektr uses a spaced repetition algorithm (FSRS) to surface highlights right before you're about to forget them. Spend 5 minutes a day reviewing to **internalize** key insights.
+Lektr gives you two powerful ways to internalize knowledge:
+
+- **Frictionless Book Study**: Dive into a specific book without setup. Lektr automatically turns your raw highlights into "Virtual Flashcards" for immediate review.
+- **Spaced Repetition (SRS)**: For long-term retention, add flashcards to decks. The FSRS algorithm schedules reviews exactly when you're about to forget them, ensuring efficient, lifetime memory.
 
 ### 3. Retain & Apply
 
@@ -74,6 +78,10 @@ Build a true "Second Brain."
 
 Most people forget 90% of what they read within a week. Lektr's active recall system prevents this leakage.
 
+### Zero Friction
+
+Don't want to manage decks? No problem. **Virtual Flashcards** let you study raw highlights immediately. Convert them to permanent SRS cards only when you want to commit them to long-term memory.
+
 ### Escape the Subscription Trap
 
 Unlike other tools that charge monthly fees for your own data, Lektr is:
@@ -86,34 +94,76 @@ Unlike other tools that charge monthly fees for your own data, Lektr is:
 
 Automatic cover art and metadata enrichment via Hardcover and Open Library keep your library looking pristine.
 
-## 🚀 Deploy with Docker
+## 🚀 Quick Start with Docker
 
-Getting started is easy with Docker Compose.
+The recommended way to run Lektr is using Docker.
 
-1. **Clone the repository:**
+### Prerequisites
+
+- Docker and Docker Compose v2+
+- At least 2GB RAM recommended
+
+### Installation
+
+1. **Create a project directory:**
+
+   ```bash
+   mkdir lektr && cd lektr
+   ```
+
+2. **Download config:**
+
+   ```bash
+   curl -O https://raw.githubusercontent.com/lektr/lektr/main/docker-compose.yml
+   ```
+
+   _Alternatively, clone the full repository:_
 
    ```bash
    git clone https://github.com/lektr/lektr.git
    cd lektr
    ```
 
-2. **Configure environment:**
-   Copy the example environment file and update it with your settings.
+3. **Configure environment:**
+
+   Create a `.env` file (optional but recommended for production):
 
    ```bash
-   cp .env.example .env
+   # Security - REQUIRED for production!
+   # Generate with: openssl rand -base64 32
+   JWT_SECRET=your-very-long-secret-key-at-least-32-chars
+
+   # Admin User (Default: admin@lektr.local / admin123)
+   ADMIN_EMAIL=your@email.com
+   ADMIN_PASSWORD=your-secure-password
+
+   # Database
+   POSTGRES_PASSWORD=your-secure-db-password
+
+   # Optional
+   HARDCOVER_API_KEY=your-hardcover-api-key # For book metadata
+   LEKTR_PORT=80 # Change if port 80 is in use
    ```
 
-   _Edit `.env` to add your optional `HARDCOVER_API_KEY` for better book covers._
-
-3. **Start the services:**
+4. **Start the services:**
 
    ```bash
    docker compose up -d
    ```
 
-4. **Access Lektr:**
-   Open `http://localhost:80` (or `http://localhost:${LEKTR_PORT}`) in your browser.
+5. **Access Lektr:**
+   - Open `http://localhost` (or your configured port)
+   - Default login: `admin@lektr.local` / `admin123`
+   - **Important:** Change the password immediately!
+
+## 🔄 Updating
+
+To update to the latest version:
+
+```bash
+docker compose pull
+docker compose up -d
+```
 
 ## 🤝 Support the Project
 
