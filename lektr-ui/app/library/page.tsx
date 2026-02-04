@@ -4,14 +4,20 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { getBooks, removeTagFromBook, toggleBookPin, type Book } from "@/lib/api";
+import { getBooks, removeTagFromBook, toggleBookPin, deleteBook, type Book } from "@/lib/api";
 import { AuthGuard } from "@/components/auth-guard";
 import { ExportModal } from "@/components/export-modal";
 import { PageHeader } from "@/components/page-header";
 import { BookTagSelector } from "@/components/book-tag-selector";
 import { BookCard } from "@/components/book-card";
-import { Tag, Pin, Download, Upload, Search, ArrowUpDown, LayoutGrid, List, Trash2 } from "lucide-react";
+import { BookListCard } from "@/components/book-list-card";
+import { Tag, Pin, Download, Upload, Search, ArrowUpDown, LayoutGrid, List, Trash2, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LibraryFilters, type LibraryFilterState } from "@/components/library-filters";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { BulkTagSelector } from "@/components/bulk-tag-selector";
+import { toast } from "sonner";
+
 
 type SortOption = "recent" | "title" | "author" | "highlights";
 type ViewOption = "grid" | "list";
@@ -57,14 +63,124 @@ export default function LibraryPage() {
     refetchInterval: 5000,
   });
 
+  // Filters state
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<LibraryFilterState>({
+    sources: [],
+    status: [],
+    tags: []
+  });
+
+  // Selection state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
+  const [showBulkTagSelector, setShowBulkTagSelector] = useState(false);
+
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedBookIds(new Set()); // Clear selection when toggling
+  };
+
+  // Toggle single book selection
+  const toggleBookSelection = (bookId: string) => {
+    if (!isSelectionMode) {
+      setIsSelectionMode(true);
+    }
+    const newSelected = new Set(selectedBookIds);
+    if (newSelected.has(bookId)) {
+      newSelected.delete(bookId);
+    } else {
+      newSelected.add(bookId);
+    }
+    setSelectedBookIds(newSelected);
+  };
+
+  // Bulk Delete Handler
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedBookIds.size} books? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const ids = Array.from(selectedBookIds);
+      let successCount = 0;
+
+      // Execute concurrently
+      await Promise.all(ids.map(async (id) => {
+        try {
+          await deleteBook(id);
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to delete book ${id}`, err);
+        }
+      }));
+
+      toast.success(`Deleted ${successCount} books`);
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      setSelectedBookIds(new Set());
+      setIsSelectionMode(false);
+    } catch (err) {
+      toast.error("Failed to delete some books");
+    }
+  };
+
   // Client-side filtering and sorting
   const filteredBooks = useMemo(() => {
     if (!data?.books) return [];
 
-    // Filter out books with no highlights
-    let result = data.books.filter((b) => b.highlightCount > 0);
+    let result = [...data.books];
 
-    // Filter
+    // 0. Base Filter: If user selected "Has highlights" explicitly or implicitly?
+    // The legacy code filtered out books with no highlights by default (line 65).
+    // Let's preserve that ONLY if no specific status filter overrides it.
+    // Actually, "No Highlights" is a status option now.
+    // If NO status filter is selected, maybe we default to showing everything that has highlights?
+    // Or maybe we show everything by default?
+    // The previous code had: let result = data.books.filter((b) => b.highlightCount > 0);
+    // Let's stick to showing everything unless filtered, BUT maybe users want to see only highlighted books.
+    // Let's respect the "status" filter. If empty, maybe show all (or keep legacy behavior?)
+    // Decision: Show ALL books by default now that we have filters.
+    // If they want only highlighted, they can filter "Has highlights".
+
+    // Actually, legacy filtered out empty books. Keep that?
+    // "Filter out books with no highlights" -> Users probably imported empty books and don't want to see them.
+    // Let's make "Has Highlights" selected by default? or just filter out 0 highlights unless "No Highlights" is selected?
+    // Let's allow seeing empty books if explicitly asked, but default to >0 highlights if status is empty.
+    const showEmpty = filters.status.includes("no_highlights");
+    const showHighlighted = filters.status.includes("has_highlights");
+    const showPinned = filters.status.includes("pinned");
+
+    // Status Logic:
+    if (filters.status.length > 0) {
+      result = result.filter(b => {
+        if (showPinned && b.pinnedAt) return true;
+        if (showHighlighted && b.highlightCount > 0) return true;
+        if (showEmpty && b.highlightCount === 0) return true;
+        return false;
+      });
+    } else {
+        // Legacy Default: Only show books with highlights?
+        // Or show all? The previous code forced >0.
+        // Let's relax this to show all, so users can find manual entries they just made.
+        // Or better: Filter out 0-highlight books UNLESS they are pinned or created manually?
+        // Let's just filter > 0 for now as per original code, UNLESS user actively filters.
+        result = result.filter((b) => b.highlightCount > 0);
+    }
+
+    // Source Filter
+    if (filters.sources.length > 0) {
+      result = result.filter(b => b.sourceType && filters.sources.includes(b.sourceType));
+    }
+
+    // Tag Filter
+    if (filters.tags.length > 0) {
+      result = result.filter(b =>
+        b.tags && b.tags.some(t => filters.tags.includes(t.id))
+      );
+    }
+
+    // Search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -105,12 +221,12 @@ export default function LibraryPage() {
     });
 
     return result;
-  }, [data?.books, searchQuery, sortBy]);
+  }, [data?.books, searchQuery, sortBy, filters]);
 
   // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(BOOKS_PER_PAGE);
-  }, [searchQuery, sortBy]);
+  }, [searchQuery, sortBy, filters]);
 
   // Visible books (sliced for lazy rendering)
   const visibleBooks = useMemo(() => {
@@ -225,9 +341,9 @@ export default function LibraryPage() {
           }
         >
           {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center bg-card p-1 rounded-2xl border border-border/40 shadow-sm">
+          <div className="relative z-40 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center bg-card p-1 rounded-2xl border border-border/40 shadow-sm">
             {/* Search */}
-            <div className="relative flex-1 w-full sm:w-auto">
+            <div className="relative flex-1 w-full">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none w-4 h-4"
               />
@@ -236,11 +352,40 @@ export default function LibraryPage() {
                 placeholder="Search title, author, or tag..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full !h-10 !min-h-0 !py-0 !pl-10 !pr-4 rounded-full bg-muted/50 border-none focus:ring-1 focus:ring-primary/20 text-sm transition-all leading-10 hover:bg-muted/80"
+                className="w-full h-10! min-h-0! py-0! pl-10! pr-4! rounded-full bg-muted/50 border-none focus:ring-1 focus:ring-primary/20 text-sm transition-all leading-10 hover:bg-muted/80"
               />
             </div>
 
+            <div className="w-px h-8 bg-border/50 mx-2 hidden sm:block" />
+
+            {/* Advanced Filters */}
+            <LibraryFilters
+              filters={filters}
+              onChange={setFilters}
+              isOpen={isFilterOpen}
+              onToggle={() => setIsFilterOpen(!isFilterOpen)}
+              onClear={() => {
+                setFilters({ sources: [], status: [], tags: [] });
+                setSearchQuery("");
+              }}
+              resultCount={filteredBooks.length}
+            />
+
             <div className="flex gap-3 items-center w-full sm:w-auto justify-between sm:justify-end">
+              {/* Select Toggle */}
+              <button
+                onClick={toggleSelectionMode}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors border",
+                  isSelectionMode
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
+                )}
+              >
+                <ListChecks className="w-4 h-4" />
+                <span>{isSelectionMode ? "Done" : "Select"}</span>
+              </button>
+
               {/* Sort Dropdown */}
               <div className="relative">
                 <select
@@ -298,14 +443,19 @@ export default function LibraryPage() {
             </div>
             <h2 className="text-xl font-semibold mb-2">No books found</h2>
             <p className="text-muted-foreground mb-6">
-              {searchQuery ? `No matches for "${searchQuery}"` : "Your library is empty"}
+              {searchQuery || filters.sources.length > 0 || filters.status.length > 0 || filters.tags.length > 0
+                ? "No matches found for your active filters"
+                : "Your library is empty"}
             </p>
-            {searchQuery ? (
+            {searchQuery || filters.sources.length > 0 || filters.status.length > 0 || filters.tags.length > 0 ? (
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilters({ sources: [], status: [], tags: [] });
+                }}
                 className="btn btn-secondary"
               >
-                Clear Search
+                Clear filters
               </button>
             ) : (
               <Link href="/sync" className="btn btn-primary">
@@ -331,52 +481,24 @@ export default function LibraryPage() {
                       setTagSelectorBookId(book.id);
                     }}
                     onPinClick={handlePinClick(book.id)}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedBookIds.has(book.id)}
+                    onToggleSelect={() => toggleBookSelection(book.id)}
                   />
                 ) : (
-                  <div key={book.id} className="p-4 rounded-xl border border-border/50 hover:border-border hover:shadow-sm transition-all bg-card flex items-center gap-4 group">
-                    {/* List View Item */}
-                    <Link href={`/library/${book.id}`} className="flex-1 flex items-center gap-4 min-w-0">
-                      <div className="font-semibold text-lg w-10 h-10 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs relative">
-                        {book.title.charAt(0)}
-                        {book.pinnedAt && (
-                          <div className="absolute -top-1 -left-1 bg-primary text-primary-foreground p-0.5 rounded-full shadow-sm">
-                            <Pin className="w-2.5 h-2.5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium truncate">{book.title}</h3>
-                          {book.pinnedAt && <Pin className="w-3.5 h-3.5 text-primary shrink-0" />}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">{book.author || "Unknown Author"}</p>
-                      </div>
-                    </Link>
-                    <div className="text-sm text-muted-foreground hidden sm:block">
-                      {book.highlightCount} highlights
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handlePinClick(book.id)}
-                        className={`!w-8 !h-8 !min-w-0 !min-h-0 !p-0 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
-                          book.pinnedAt
-                            ? "bg-primary text-primary-foreground border-primary hover:bg-primary/80"
-                            : "bg-muted/50 text-foreground border-transparent hover:bg-muted"
-                        }`}
-                        title={book.pinnedAt ? "Unpin" : "Pin to top"}
-                      >
-                        <Pin className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setTagSelectorBookId(book.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted text-foreground text-xs font-medium transition-colors cursor-pointer"
-                      >
-                        <Tag className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Edit Tags</span>
-                        <span className="sm:hidden">Tags</span>
-                      </button>
-                    </div>
-                  </div>
+                  <BookListCard
+                    key={book.id}
+                    book={book}
+                    onTagClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setTagSelectorBookId(book.id);
+                    }}
+                    onPinClick={handlePinClick(book.id)}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedBookIds.has(book.id)}
+                    onToggleSelect={() => toggleBookSelection(book.id)}
+                  />
                 )
               ))}
             </div>
@@ -415,6 +537,26 @@ export default function LibraryPage() {
           onClose={() => setShowExportModal(false)}
           bookTitle="All Books"
         />
+
+        {/* Bulk Actions */}
+        <BulkActionBar
+          selectedCount={selectedBookIds.size}
+          onClearSelection={() => setSelectedBookIds(new Set())}
+          onDelete={handleBulkDelete}
+          onAddTags={() => setShowBulkTagSelector(true)}
+        />
+
+        {showBulkTagSelector && (
+           <BulkTagSelector
+             bookIds={Array.from(selectedBookIds)}
+             onClose={() => setShowBulkTagSelector(false)}
+             onSuccess={() => {
+                setShowBulkTagSelector(false);
+                setSelectedBookIds(new Set());
+                setIsSelectionMode(false);
+             }}
+           />
+        )}
       </div>
     </AuthGuard>
   );

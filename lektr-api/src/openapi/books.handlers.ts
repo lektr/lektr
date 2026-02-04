@@ -1,9 +1,9 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { db } from "../db";
-import { books as booksTable, highlights, tags, highlightTags, bookTags } from "../db/schema";
-import { eq, count, max, isNull, and } from "drizzle-orm";
+import { books as booksTable, highlights, tags, highlightTags, bookTags, flashcards } from "../db/schema";
+import { eq, count, max, isNull, and, lte, sql, inArray } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
-import { getSetting } from "../routes/settings";
+import { getSetting } from "./settings.handlers";
 import {
   listBooksRoute,
   getBookRoute,
@@ -15,6 +15,8 @@ import {
   togglePinRoute,
   restoreHighlightRoute,
   hardDeleteHighlightRoute,
+  getBookStudySessionRoute,
+  getBookStudyStatsRoute,
 } from "./books.routes";
 
 export const booksOpenAPI = new OpenAPIHono();
@@ -409,4 +411,210 @@ booksOpenAPI.openapi(hardDeleteHighlightRoute, async (c) => {
   await db.delete(highlights).where(eq(highlights.id, highlightId));
 
   return c.json({ success: true, message: "Highlight permanently deleted" }, 200);
+});
+
+// ============================================
+// Book Study Handlers
+// ============================================
+
+// GET /{id}/study - Get book study session
+booksOpenAPI.openapi(getBookStudySessionRoute, async (c) => {
+  const user = c.get("user");
+  const { id: bookId } = c.req.valid("param");
+  const query = c.req.valid("query");
+  const limit = Math.min(50, parseInt(query.limit || "20", 10));
+  const now = new Date();
+
+  // Verify book exists and belongs to user
+  const [book] = await db
+    .select({ id: booksTable.id, title: booksTable.title })
+    .from(booksTable)
+    .where(eq(booksTable.id, bookId))
+    .limit(1);
+
+  if (!book) {
+    return c.json({ error: "Book not found" }, 404);
+  }
+
+  const [bookOwner] = await db
+    .select({ userId: booksTable.userId })
+    .from(booksTable)
+    .where(eq(booksTable.id, bookId))
+    .limit(1);
+
+  if (bookOwner.userId !== user.userId) {
+    return c.json({ error: "Not authorized" }, 403);
+  }
+
+  // Get all highlight IDs for this book
+  const bookHighlightIds = await db
+    .select({ id: highlights.id })
+    .from(highlights)
+    .where(and(eq(highlights.bookId, bookId), isNull(highlights.deletedAt)));
+
+  const hlIds = bookHighlightIds.map((h) => h.id);
+
+  if (hlIds.length === 0) {
+    return c.json({ cards: [], totalDue: 0, totalHighlights: 0 }, 200);
+  }
+
+  type StudyItemType = {
+    id: string;
+    front: string;
+    back: string;
+    cardType: "basic" | "cloze";
+    isVirtual: boolean;
+    highlightId: string | null;
+    deckId: string | null;
+    highlight: { id: string; bookId: string; bookTitle: string } | null;
+  };
+
+  const studyItems: StudyItemType[] = [];
+
+  // Get due flashcards linked to this book's highlights
+  const dueCards = await db
+    .select({
+      id: flashcards.id,
+      front: flashcards.front,
+      back: flashcards.back,
+      cardType: flashcards.cardType,
+      highlightId: flashcards.highlightId,
+      deckId: flashcards.deckId,
+    })
+    .from(flashcards)
+    .where(
+      and(
+        eq(flashcards.userId, user.userId),
+        inArray(flashcards.highlightId, hlIds),
+        lte(flashcards.dueAt, now)
+      )
+    )
+    .orderBy(flashcards.dueAt)
+    .limit(limit);
+
+  for (const card of dueCards) {
+    studyItems.push({
+      id: card.id,
+      front: card.front,
+      back: card.back,
+      cardType: card.cardType,
+      isVirtual: false,
+      highlightId: card.highlightId,
+      deckId: card.deckId,
+      highlight: card.highlightId ? { id: card.highlightId, bookId, bookTitle: book.title } : null,
+    });
+  }
+
+  // Fill remaining slots with virtual cards (raw highlights without flashcards)
+  if (studyItems.length < limit) {
+    // Get highlights that already have flashcards
+    const existingHlIds = await db
+      .select({ highlightId: flashcards.highlightId })
+      .from(flashcards)
+      .where(
+        and(
+          eq(flashcards.userId, user.userId),
+          inArray(flashcards.highlightId, hlIds)
+        )
+      );
+
+    const coveredHlIds = new Set(
+      existingHlIds.filter((h) => h.highlightId).map((h) => h.highlightId as string)
+    );
+    const uncoveredHlIds = hlIds.filter((id) => !coveredHlIds.has(id));
+
+    if (uncoveredHlIds.length > 0) {
+      const rawHighlights = await db
+        .select({
+          id: highlights.id,
+          content: highlights.content,
+        })
+        .from(highlights)
+        .where(inArray(highlights.id, uncoveredHlIds.slice(0, limit - studyItems.length)));
+
+      for (const hl of rawHighlights) {
+        studyItems.push({
+          id: `virtual:${hl.id}`,
+          front: hl.content.length > 100 ? hl.content.slice(0, 100) + "..." : hl.content,
+          back: hl.content,
+          cardType: "basic",
+          isVirtual: true,
+          highlightId: hl.id,
+          deckId: null,
+          highlight: { id: hl.id, bookId, bookTitle: book.title },
+        });
+      }
+    }
+  }
+
+  // Count total due
+  const [dueResult] = await db.execute(sql`
+    SELECT count(*)::int as count
+    FROM flashcards
+    WHERE user_id = ${user.userId}
+    AND highlight_id IN (SELECT id FROM highlights WHERE book_id = ${bookId} AND deleted_at IS NULL)
+    AND due_at <= NOW()
+  `);
+
+  // Count total highlights
+  const [hlCountResult] = await db
+    .select({ count: count() })
+    .from(highlights)
+    .where(and(eq(highlights.bookId, bookId), isNull(highlights.deletedAt)));
+
+  return c.json({
+    cards: studyItems,
+    totalDue: Number((dueResult as { count: number }).count || 0),
+    totalHighlights: hlCountResult?.count ?? 0,
+  }, 200);
+});
+
+// GET /{id}/study-stats - Get book study stats
+booksOpenAPI.openapi(getBookStudyStatsRoute, async (c) => {
+  const user = c.get("user");
+  const { id: bookId } = c.req.valid("param");
+
+  // Verify book exists and belongs to user
+  const [book] = await db
+    .select({ userId: booksTable.userId })
+    .from(booksTable)
+    .where(eq(booksTable.id, bookId))
+    .limit(1);
+
+  if (!book) {
+    return c.json({ error: "Book not found" }, 404);
+  }
+
+  if (book.userId !== user.userId) {
+    return c.json({ error: "Not authorized" }, 403);
+  }
+
+  // Count highlights
+  const [hlCountResult] = await db
+    .select({ count: count() })
+    .from(highlights)
+    .where(and(eq(highlights.bookId, bookId), isNull(highlights.deletedAt)));
+
+  // Count total flashcards linked to this book
+  const [cardResult] = await db.execute(sql`
+    SELECT count(*)::int as count
+    FROM flashcards
+    WHERE user_id = ${user.userId}
+    AND highlight_id IN (SELECT id FROM highlights WHERE book_id = ${bookId} AND deleted_at IS NULL)
+  `);
+
+  // Count due flashcards
+  const [dueResult] = await db.execute(sql`
+    SELECT count(*)::int as count
+    FROM flashcards
+    WHERE user_id = ${user.userId}
+    AND highlight_id IN (SELECT id FROM highlights WHERE book_id = ${bookId} AND deleted_at IS NULL)
+    AND due_at <= NOW()
+  `);
+
+  return c.json({
+    dueCount: Number((dueResult as { count: number }).count || 0),
+    cardCount: Number((cardResult as { count: number }).count || 0),
+    highlightCount: hlCountResult?.count ?? 0,
+  }, 200);
 });

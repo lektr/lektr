@@ -64,6 +64,13 @@
       "when": 1770080891074,
       "tag": "0008_add_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770147604691,
+      "tag": "0009_melodic_barracuda",
+      "breakpoints": true
     }
   ]
 }

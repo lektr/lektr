@@ -799,6 +799,297 @@ export async function getEmailSettings(): Promise<EmailSettingsResponse> {
   return response.json();
 }
 
+// Decks & Flashcards API
+
+export interface DeckSettings {
+  fsrsParams?: Record<string, unknown>;
+  includeRawHighlights?: boolean;
+  autoGenerateTemplate?: string;
+}
+
+export interface Deck {
+  id: string;
+  title: string;
+  description: string | null;
+  type: "manual" | "smart";
+  tagLogic: "AND" | "OR" | null;
+  settings: DeckSettings | null;
+  createdAt: string;
+  updatedAt: string;
+  cardCount?: number;
+  dueCount?: number;
+  tags?: Tag[];
+}
+
+export interface FSRSData {
+  stability: number;
+  difficulty: number;
+  due: string;
+  state: number;
+  lastReview: string | null;
+}
+
+export interface Flashcard {
+  id: string;
+  deckId: string;
+  highlightId: string | null;
+  front: string;
+  back: string;
+  cardType: "basic" | "cloze";
+  fsrsData: FSRSData | null;
+  dueAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  highlight?: {
+    id: string;
+    content: string;
+    bookId?: string;
+    bookTitle?: string;
+  };
+}
+
+export interface StudyItem {
+  id: string;
+  front: string;
+  back: string;
+  cardType: "basic" | "cloze";
+  isVirtual: boolean;
+  highlightId: string | null;
+  deckId: string | null;
+  highlight?: { id: string; bookId: string; bookTitle: string } | null;
+}
+
+export async function getDecks(): Promise<{ decks: Deck[] }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch decks");
+  }
+
+  return response.json();
+}
+
+export async function createDeck(data: {
+  title: string;
+  description?: string;
+  type?: "manual" | "smart";
+  tagLogic?: "AND" | "OR";
+  tagIds?: string[];
+  settings?: DeckSettings;
+}): Promise<{ deck: Deck }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create deck");
+  }
+
+  return response.json();
+}
+
+export async function getDeck(id: string): Promise<{ deck: Deck }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/${id}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch deck");
+  }
+
+  return response.json();
+}
+
+export async function updateDeck(
+  id: string,
+  data: {
+    title?: string;
+    description?: string;
+    tagLogic?: "AND" | "OR";
+    tagIds?: string[];
+    settings?: DeckSettings;
+  }
+): Promise<{ deck: Deck }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update deck");
+  }
+
+  return response.json();
+}
+
+export async function deleteDeck(id: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete deck");
+  }
+
+  return response.json();
+}
+
+export async function getDeckCards(
+  deckId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ cards: Flashcard[]; total: number }> {
+  const { limit = 50, offset = 0 } = options || {};
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/decks/${deckId}/cards?limit=${limit}&offset=${offset}`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch cards");
+  }
+
+  return response.json();
+}
+
+export async function createCard(
+  deckId: string,
+  data: {
+    front: string;
+    back: string;
+    highlightId?: string;
+    cardType?: "basic" | "cloze";
+  }
+): Promise<{ card: Flashcard }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/${deckId}/cards`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create card");
+  }
+
+  return response.json();
+}
+
+export async function updateCard(
+  cardId: string,
+  data: {
+    front?: string;
+    back?: string;
+    cardType?: "basic" | "cloze";
+  }
+): Promise<{ card: Flashcard }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/cards/${cardId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update card");
+  }
+
+  return response.json();
+}
+
+export async function deleteCard(cardId: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/cards/${cardId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete card");
+  }
+
+  return response.json();
+}
+
+export async function getStudySession(
+  deckId: string,
+  options?: { limit?: number }
+): Promise<{ cards: StudyItem[]; totalDue: number }> {
+  const { limit = 20 } = options || {};
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/decks/${deckId}/study?limit=${limit}`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to start study session");
+  }
+
+  return response.json();
+}
+
+export async function submitDeckReview(
+  cardId: string,
+  rating: number
+): Promise<{ nextDue: string; fsrsData: FSRSData }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/decks/cards/${cardId}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ rating }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to submit review");
+  }
+
+  return response.json();
+}
+
+export async function submitVirtualReview(
+  highlightId: string,
+  data: {
+    rating: number;
+    deckId: string;
+    front?: string;
+    back?: string;
+  }
+): Promise<{ card: Flashcard; nextDue: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/decks/virtual-cards/${highlightId}/review`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to submit virtual review");
+  }
+
+  return response.json();
+}
+
 export async function updateEmailSettings(settings: EmailSettings): Promise<{ success: boolean; message: string }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/email-settings`, {
     method: "PUT",
@@ -903,6 +1194,45 @@ export async function triggerDigest(): Promise<{ success: boolean; message: stri
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to trigger digest");
+  }
+
+  return response.json();
+}
+
+// Book Study API
+export interface BookStudyStats {
+  dueCount: number;
+  cardCount: number;
+  highlightCount: number;
+}
+
+export async function getBookStudyStats(bookId: string): Promise<BookStudyStats> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/books/${bookId}/study-stats`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get study stats");
+  }
+
+  return response.json();
+}
+
+export async function getBookStudySession(
+  bookId: string,
+  options?: { limit?: number }
+): Promise<{ cards: StudyItem[]; totalDue: number; totalHighlights: number }> {
+  const { limit = 20 } = options || {};
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/books/${bookId}/study?limit=${limit}`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to start book study session");
   }
 
   return response.json();

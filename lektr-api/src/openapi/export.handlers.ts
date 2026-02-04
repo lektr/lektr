@@ -1,32 +1,33 @@
-import { Hono } from "hono";
-import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { exportService } from "../services/export";
 import { authMiddleware } from "../middleware/auth";
+import { listExportProvidersRoute, triggerExportRoute } from "./export.routes";
 
-const exportRoutes = new Hono();
+export const exportOpenAPI = new OpenAPIHono();
 
-// List available export providers (public)
-exportRoutes.get("/providers", (c) => {
-  const providers = exportService.getProviders();
-  return c.json({ providers });
+// GET /providers - List available export providers (public)
+exportOpenAPI.openapi(listExportProvidersRoute, async (c) => {
+  const providers = exportService.getProviders().map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    outputType: "file" as const, // Default, actual type varies by provider
+  }));
+  return c.json({ providers }, 200);
 });
 
-// Trigger export (requires auth)
-const exportSchema = z.object({
-  bookIds: z.array(z.string().uuid()).optional(),
-  includeNotes: z.boolean().optional().default(true),
-  includeTags: z.boolean().optional().default(true),
-  config: z.record(z.unknown()).optional(),
-});
+// Protected routes
+const protectedExport = new OpenAPIHono();
+protectedExport.use("*", authMiddleware);
 
-exportRoutes.post("/:providerId", authMiddleware, zValidator("json", exportSchema), async (c) => {
+// POST /:providerId - Trigger export (auth required)
+protectedExport.openapi(triggerExportRoute, async (c) => {
   const user = c.get("user");
   if (!user) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const providerId = c.req.param("providerId");
+  const { providerId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   const provider = exportService.getProvider(providerId);
@@ -51,11 +52,11 @@ exportRoutes.post("/:providerId", authMiddleware, zValidator("json", exportSchem
     }
 
     if (result.type === "url" && result.url) {
-      return c.json({ redirect: result.url });
+      return c.json({ redirect: result.url }, 200);
     }
 
     // JSON response (status message)
-    return c.json({ message: result.message || "Export completed" });
+    return c.json({ message: result.message || "Export completed" }, 200);
   } catch (error) {
     console.error("[Export] Error:", error);
     const message = error instanceof Error ? error.message : "Export failed";
@@ -63,4 +64,5 @@ exportRoutes.post("/:providerId", authMiddleware, zValidator("json", exportSchem
   }
 });
 
-export { exportRoutes };
+// Mount protected routes
+exportOpenAPI.route("/", protectedExport);

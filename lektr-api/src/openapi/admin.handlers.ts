@@ -1,19 +1,23 @@
-import { Hono } from "hono";
-import { authMiddleware } from "../middleware/auth";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { db } from "../db";
 import { books, settings } from "../db/schema";
 import { eq, isNull, inArray } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
 import { metadataService } from "../services";
 import { emailService } from "../services/email";
 import { jobQueueService } from "../services/job-queue";
 import { digestService } from "../services/digest";
 import { render } from "@react-email/render";
 import WelcomeEmail from "../emails/welcome";
-
-const adminRouter = new Hono();
-
-// All admin routes require auth
-adminRouter.use("*", authMiddleware);
+import {
+  getEmailSettingsRoute,
+  updateEmailSettingsRoute,
+  testEmailRoute,
+  getJobQueueStatusRoute,
+  refreshAllMetadataRoute,
+  refreshBookMetadataRoute,
+  triggerDigestRoute,
+} from "./admin.routes";
 
 // Email settings keys
 const EMAIL_SETTINGS_KEYS = [
@@ -26,14 +30,14 @@ const EMAIL_SETTINGS_KEYS = [
   "mail_from_email",
 ] as const;
 
-/**
- * GET /api/v1/admin/email-settings
- * Get current email configuration
- * Admin only
- */
-adminRouter.get("/email-settings", async (c) => {
-  const user = c.get("user");
+export const adminOpenAPI = new OpenAPIHono();
 
+// All admin routes require auth
+adminOpenAPI.use("*", authMiddleware);
+
+// GET /email-settings
+adminOpenAPI.openapi(getEmailSettingsRoute, async (c) => {
+  const user = c.get("user");
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
@@ -53,35 +57,32 @@ adminRouter.get("/email-settings", async (c) => {
     }
   }
 
-  // Check if configured
   const isConfigured = await emailService.isConfigured();
 
-  return c.json({
-    settings: settingsMap,
-    isConfigured,
-    envFallback: !settingsMap.smtp_host && process.env.SMTP_HOST ? true : false,
-  });
+  return c.json(
+    {
+      settings: settingsMap,
+      isConfigured,
+      envFallback: !settingsMap.smtp_host && process.env.SMTP_HOST ? true : false,
+    },
+    200
+  );
 });
 
-/**
- * PUT /api/v1/admin/email-settings
- * Update email configuration
- * Admin only
- */
-adminRouter.put("/email-settings", async (c) => {
+// PUT /email-settings
+adminOpenAPI.openapi(updateEmailSettingsRoute, async (c) => {
   const user = c.get("user");
-
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
 
-  const body = await c.req.json();
+  const body = c.req.valid("json");
 
-  // Validate and upsert each setting
   for (const key of EMAIL_SETTINGS_KEYS) {
-    if (body[key] !== undefined) {
+    const value = body[key as keyof typeof body];
+    if (value !== undefined) {
       // Skip if it's the masked password placeholder
-      if (key === "smtp_pass" && body[key] === "••••••••") {
+      if (key === "smtp_pass" && value === "••••••••") {
         continue;
       }
 
@@ -89,127 +90,93 @@ adminRouter.put("/email-settings", async (c) => {
         .insert(settings)
         .values({
           key,
-          value: String(body[key]),
+          value: String(value),
           description: `Email configuration: ${key}`,
         })
         .onConflictDoUpdate({
           target: settings.key,
           set: {
-            value: String(body[key]),
+            value: String(value),
             updatedAt: new Date(),
           },
         });
     }
   }
 
-  return c.json({ success: true, message: "Email settings updated" });
+  return c.json({ success: true, message: "Email settings updated" }, 200);
 });
 
-/**
- * POST /api/v1/admin/email-settings/test
- * Send a test email to verify configuration
- * Admin only
- */
-adminRouter.post("/email-settings/test", async (c) => {
+// POST /email-settings/test
+adminOpenAPI.openapi(testEmailRoute, async (c) => {
   const user = c.get("user");
-
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
 
-  const body = await c.req.json();
-  const testEmail = body.email;
-
-  if (!testEmail) {
-    return c.json({ error: "Email address required" }, 400);
-  }
+  const { email: testEmail } = c.req.valid("json");
 
   // Test connection first
   const connectionTest = await emailService.testConnection();
   if (!connectionTest.success) {
-    return c.json({
-      success: false,
-      error: `Connection failed: ${connectionTest.error}`
-    }, 400);
+    return c.json(
+      { success: false, error: `Connection failed: ${connectionTest.error}` },
+      400
+    );
   }
 
   // Render and send test email
   const appUrl = process.env.APP_URL || "http://localhost:3002";
   const html = await render(WelcomeEmail({ userEmail: testEmail, appUrl }));
 
-  const sent = await emailService.sendEmail(
-    testEmail,
-    "🧪 Lektr Test Email",
-    html
-  );
+  const sent = await emailService.sendEmail(testEmail, "🧪 Lektr Test Email", html);
 
   if (sent) {
-    return c.json({ success: true, message: `Test email sent to ${testEmail}` });
+    return c.json({ success: true, message: `Test email sent to ${testEmail}` }, 200);
   } else {
     return c.json({ success: false, error: "Failed to send email" }, 500);
   }
 });
 
-/**
- * GET /api/v1/admin/job-queue/status
- * Get job queue status
- * Admin only
- */
-adminRouter.get("/job-queue/status", async (c) => {
+// GET /job-queue/status
+adminOpenAPI.openapi(getJobQueueStatusRoute, async (c) => {
   const user = c.get("user");
-
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
 
   const status = await jobQueueService.getStatus();
-  return c.json(status);
+  return c.json(status, 200);
 });
 
-/**
- * POST /api/v1/admin/refresh-metadata
- * Queue metadata refresh for all books without covers
- * Admin only
- */
-adminRouter.post("/refresh-metadata", async (c) => {
+// POST /refresh-metadata (all books)
+adminOpenAPI.openapi(refreshAllMetadataRoute, async (c) => {
   const user = c.get("user");
-
-  // Admin only
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
 
-  // Check if metadata service has providers
   if (!metadataService.hasProviders()) {
-    return c.json({
-      error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment."
-    }, 400);
+    return c.json(
+      { error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment." },
+      400
+    );
   }
 
-  // Find all books without cover images for this user
+  // Find all books without cover images
   const booksWithoutCovers = await db
-    .select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-    })
+    .select({ id: books.id, title: books.title, author: books.author })
     .from(books)
     .where(isNull(books.coverImageUrl));
 
   if (booksWithoutCovers.length === 0) {
-    return c.json({
-      queued: 0,
-      message: "All books already have covers!"
-    });
+    return c.json({ queued: 0, message: "All books already have covers!" }, 200);
   }
 
   // Process books in background (don't await)
   const booksToProcess = [...booksWithoutCovers];
 
-  // Start async processing
   (async () => {
     console.log(`📚 Starting metadata refresh for ${booksToProcess.length} books...`);
-
     let updated = 0;
     for (const book of booksToProcess) {
       try {
@@ -238,45 +205,37 @@ adminRouter.post("/refresh-metadata", async (c) => {
         }
 
         // Rate limit: wait 500ms between requests
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (error) {
         console.error(`❌ Failed to update "${book.title}":`, error);
       }
     }
-
     console.log(`📚 Metadata refresh complete: ${updated}/${booksToProcess.length} books updated`);
   })();
 
-  return c.json({
-    queued: booksWithoutCovers.length,
-    message: `Queued ${booksWithoutCovers.length} books for metadata refresh. Check server logs for progress.`
-  });
+  return c.json(
+    {
+      queued: booksWithoutCovers.length,
+      message: `Queued ${booksWithoutCovers.length} books for metadata refresh. Check server logs for progress.`,
+    },
+    200
+  );
 });
 
-/**
- * POST /api/v1/admin/refresh-metadata/:bookId
- * Refresh metadata for a single book
- * Requires auth (any user can refresh their own books)
- */
-adminRouter.post("/refresh-metadata/:bookId", async (c) => {
+// POST /refresh-metadata/:bookId (single book)
+adminOpenAPI.openapi(refreshBookMetadataRoute, async (c) => {
   const user = c.get("user");
-  const bookId = c.req.param("bookId");
+  const { bookId } = c.req.valid("param");
 
-  // Check if metadata service has providers
   if (!metadataService.hasProviders()) {
-    return c.json({
-      error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment."
-    }, 400);
+    return c.json(
+      { error: "No metadata providers configured. Set HARDCOVER_API_KEY in environment." },
+      400
+    );
   }
 
-  // Find the book
   const [book] = await db
-    .select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      userId: books.userId,
-    })
+    .select({ id: books.id, title: books.title, author: books.author, userId: books.userId })
     .from(books)
     .where(eq(books.id, bookId))
     .limit(1);
@@ -285,12 +244,10 @@ adminRouter.post("/refresh-metadata/:bookId", async (c) => {
     return c.json({ error: "Book not found" }, 404);
   }
 
-  // Check ownership
   if (book.userId !== user.userId) {
     return c.json({ error: "Not authorized" }, 403);
   }
 
-  // Fetch metadata
   const metadata = await metadataService.enrichBook(
     book.title,
     book.author || undefined,
@@ -298,13 +255,9 @@ adminRouter.post("/refresh-metadata/:bookId", async (c) => {
   );
 
   if (!metadata?.coverImageUrl) {
-    return c.json({
-      success: false,
-      message: "No cover found for this book"
-    });
+    return c.json({ success: false, coverImageUrl: undefined, message: "No cover found for this book" }, 200);
   }
 
-  // Update the book
   await db
     .update(books)
     .set({
@@ -318,31 +271,25 @@ adminRouter.post("/refresh-metadata/:bookId", async (c) => {
     })
     .where(eq(books.id, book.id));
 
-  return c.json({
-    success: true,
-    coverImageUrl: metadata.coverImageUrl,
-    message: "Cover updated successfully"
-  });
+  return c.json(
+    { success: true, coverImageUrl: metadata.coverImageUrl, message: "Cover updated successfully" },
+    200
+  );
 });
 
-/**
- * POST /api/v1/admin/trigger-digest
- * Manually trigger digest emails for all users
- * Admin only
- */
-adminRouter.post("/trigger-digest", async (c) => {
+// POST /trigger-digest
+adminOpenAPI.openapi(triggerDigestRoute, async (c) => {
   const user = c.get("user");
-
   if (user.role !== "admin") {
     return c.json({ error: "Admin access required" }, 403);
   }
 
-  // Check if email is configured
   const isConfigured = await emailService.isConfigured();
   if (!isConfigured) {
-    return c.json({
-      error: "Email is not configured. Please configure SMTP settings first."
-    }, 400);
+    return c.json(
+      { error: "Email is not configured. Please configure SMTP settings first." },
+      400
+    );
   }
 
   // Trigger digest generation in background
@@ -350,11 +297,8 @@ adminRouter.post("/trigger-digest", async (c) => {
     console.error("📬 [Digest] Manual trigger failed:", error);
   });
 
-  return c.json({
-    success: true,
-    message: "Digest emails are being generated. Check server logs for progress."
-  });
+  return c.json(
+    { success: true, message: "Digest emails are being generated. Check server logs for progress." },
+    200
+  );
 });
-
-export { adminRouter };
-

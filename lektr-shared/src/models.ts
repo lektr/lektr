@@ -55,6 +55,9 @@ export interface Highlight {
   page: number | null;
   sourceUrl: string | null;
   tags?: Tag[];
+  // Context fields
+  bookId?: string;
+  bookTitle?: string;
 }
 
 /**
@@ -67,4 +70,86 @@ export interface ReviewItem {
   chapter: string | null;
   page: number | null;
   book: { title: string; author: string | null };
+}
+
+/**
+ * Deck type - manual or smart (tag-based)
+ */
+export type DeckType = "manual" | "smart";
+
+/**
+ * Tag logic for smart decks
+ */
+export type TagLogic = "AND" | "OR";
+
+/**
+ * Card type
+ */
+export type CardType = "basic" | "cloze";
+
+/**
+ * FSRS scheduling data
+ */
+export interface FSRSData {
+  stability: number;
+  difficulty: number;
+  due: string;
+  state: number;
+  lastReview: string | null;
+}
+
+/**
+ * Deck settings
+ */
+export interface DeckSettings {
+  fsrsParams?: Record<string, unknown>;
+  includeRawHighlights?: boolean;
+  autoGenerateTemplate?: string;
+}
+
+/**
+ * Flashcard deck
+ */
+export interface Deck {
+  id: string;
+  title: string;
+  description: string | null;
+  type: DeckType;
+  tagLogic: TagLogic | null;
+  settings: DeckSettings | null;
+  createdAt: string;
+  updatedAt: string;
+  // Computed fields for UI
+  cardCount?: number;
+  dueCount?: number;
+  tags?: Tag[];
+}
+
+/**
+ * Individual flashcard
+ */
+export interface Flashcard {
+  id: string;
+  deckId: string;
+  highlightId: string | null;
+  front: string;
+  back: string;
+  cardType: CardType;
+  fsrsData: FSRSData | null;
+  dueAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Populated for UI
+  highlight?: Highlight;
+}
+
+/**
+ * Virtual card (raw highlight presented as card)
+ */
+export interface VirtualCard {
+  highlightId: string;
+  front: string;
+  back: string;
+  isVirtual: true;
+  highlight: Highlight;
 }

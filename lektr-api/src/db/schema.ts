@@ -40,6 +40,22 @@ export const jobStatusEnum = pgEnum("job_status", [
   "failed",
 ]);
 
+// Flashcard-related enums
+export const deckTypeEnum = pgEnum("deck_type", [
+  "manual",
+  "smart",
+]);
+
+export const tagLogicEnum = pgEnum("tag_logic", [
+  "AND",
+  "OR",
+]);
+
+export const cardTypeEnum = pgEnum("card_type", [
+  "basic",
+  "cloze",
+]);
+
 // Users Table
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -144,6 +160,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),
   highlights: many(highlights),
   syncHistory: many(syncHistory),
+  decks: many(decks),
+  flashcards: many(flashcards),
 }));
 
 export const booksRelations = relations(books, ({ one, many }) => ({
@@ -165,6 +183,7 @@ export const highlightsRelations = relations(highlights, ({ one, many }) => ({
     references: [users.id],
   }),
   highlightTags: many(highlightTags),
+  flashcards: many(flashcards),
 }));
 
 export const syncHistoryRelations = relations(syncHistory, ({ one }) => ({
@@ -221,6 +240,97 @@ export const bookTags = pgTable("book_tags", {
   pk: { columns: [table.bookId, table.tagId] },
 }));
 
+// Decks Table - Flashcard deck containers (manual or smart/tag-based)
+export const decks = pgTable("decks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: deckTypeEnum("type").notNull().default("manual"),
+  tagLogic: tagLogicEnum("tag_logic").default("AND"), // For smart decks
+  settings: jsonb("settings"), // { fsrs_params, include_raw_highlights, auto_generate_template }
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Deck-Tags Junction Table (for Smart Decks - links deck to tags)
+export const deckTags = pgTable("deck_tags", {
+  deckId: uuid("deck_id")
+    .notNull()
+    .references(() => decks.id, { onDelete: "cascade" }),
+  tagId: uuid("tag_id")
+    .notNull()
+    .references(() => tags.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: { columns: [table.deckId, table.tagId] },
+}));
+
+// Flashcards Table - Individual study cards
+export const flashcards = pgTable("flashcards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  deckId: uuid("deck_id")
+    .notNull()
+    .references(() => decks.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  highlightId: uuid("highlight_id")
+    .references(() => highlights.id, { onDelete: "set null" }), // Nullable - cards can exist without highlights
+  front: text("front").notNull(),
+  back: text("back").notNull(),
+  cardType: cardTypeEnum("card_type").notNull().default("basic"),
+  fsrsData: jsonb("fsrs_data"), // { stability, difficulty, due, state, last_review }
+  dueAt: timestamp("due_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Deck Relations
+export const decksRelations = relations(decks, ({ one, many }) => ({
+  user: one(users, {
+    fields: [decks.userId],
+    references: [users.id],
+  }),
+  deckTags: many(deckTags),
+  flashcards: many(flashcards),
+}));
+
+export const deckTagsRelations = relations(deckTags, ({ one }) => ({
+  deck: one(decks, {
+    fields: [deckTags.deckId],
+    references: [decks.id],
+  }),
+  tag: one(tags, {
+    fields: [deckTags.tagId],
+    references: [tags.id],
+  }),
+}));
+
+export const flashcardsRelations = relations(flashcards, ({ one }) => ({
+  deck: one(decks, {
+    fields: [flashcards.deckId],
+    references: [decks.id],
+  }),
+  user: one(users, {
+    fields: [flashcards.userId],
+    references: [users.id],
+  }),
+  highlight: one(highlights, {
+    fields: [flashcards.highlightId],
+    references: [highlights.id],
+  }),
+}));
+
 // Tag Relations
 export const tagsRelations = relations(tags, ({ one, many }) => ({
   user: one(users, {
@@ -229,6 +339,7 @@ export const tagsRelations = relations(tags, ({ one, many }) => ({
   }),
   highlightTags: many(highlightTags),
   bookTags: many(bookTags),
+  deckTags: many(deckTags),
 }));
 
 export const highlightTagsRelations = relations(highlightTags, ({ one }) => ({

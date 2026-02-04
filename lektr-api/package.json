@@ -1,6 +1,6 @@
 {
   "name": "lektr-api",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "node --watch --import tsx src/index.ts",

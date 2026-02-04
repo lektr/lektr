@@ -8,6 +8,9 @@ interface MarkdownEditorProps {
   placeholder?: string;
   rows?: number;
   autoFocus?: boolean;
+  minHeight?: string;
+  /** Whether to show the cloze button in toolbar. Default: true */
+  showClozeButton?: boolean;
 }
 
 export function MarkdownEditor({
@@ -16,6 +19,8 @@ export function MarkdownEditor({
   placeholder = "Write your note... (supports **bold**, *italic*, - lists)",
   rows = 4,
   autoFocus = false,
+  minHeight,
+  showClozeButton = true,
 }: MarkdownEditorProps) {
   const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -29,14 +34,14 @@ export function MarkdownEditor({
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = value.substring(start, end);
-      
+
       const newText =
         value.substring(0, start) +
         prefix +
         selectedText +
         suffix +
         value.substring(end);
-      
+
       onChange(newText);
 
       // Restore cursor position after React update
@@ -60,7 +65,7 @@ export function MarkdownEditor({
       const start = textarea.selectionStart;
       // Find start of current line
       const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-      
+
       const newText = value.substring(0, lineStart) + prefix + value.substring(lineStart);
       onChange(newText);
 
@@ -72,7 +77,7 @@ export function MarkdownEditor({
     [value, onChange]
   );
 
-  const toolbarButtons = [
+  const baseButtons = [
     { label: "B", title: "Bold (Ctrl+B)", action: () => insertFormat("**"), className: "font-bold" },
     { label: "I", title: "Italic (Ctrl+I)", action: () => insertFormat("*"), className: "italic" },
     { label: "S̶", title: "Strikethrough", action: () => insertFormat("~~"), className: "" },
@@ -81,10 +86,17 @@ export function MarkdownEditor({
     { label: "•", title: "List item", action: () => insertAtLineStart("- "), className: "" },
   ];
 
+  const toolbarButtons = showClozeButton
+    ? [...baseButtons, { label: "[...]", title: "Cloze Deletion (Ctrl+Shift+C)", action: () => insertFormat("{{c1::", "}}"), className: "font-mono text-xs bg-primary/10 text-primary" }]
+    : baseButtons;
+
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey) {
-      if (e.key === "b") {
+      if (e.shiftKey && e.key === "c") {
+        e.preventDefault();
+        insertFormat("{{c1::", "}}");
+      } else if (e.key === "b") {
         e.preventDefault();
         insertFormat("**");
       } else if (e.key === "i") {
@@ -114,8 +126,8 @@ export function MarkdownEditor({
           type="button"
           onClick={() => setShowPreview(!showPreview)}
           className={`px-2 py-1 text-xs rounded transition-colors ${
-            showPreview 
-              ? "bg-primary/10 text-primary" 
+            showPreview
+              ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
@@ -125,7 +137,7 @@ export function MarkdownEditor({
 
       {/* Editor or Preview */}
       {showPreview ? (
-        <div className="p-3 min-h-[100px] prose prose-sm max-w-none">
+        <div className="p-3 prose prose-sm max-w-none" style={{ minHeight: minHeight || "100px" }}>
           {value ? (
             <MarkdownPreview content={value} />
           ) : (
@@ -142,6 +154,7 @@ export function MarkdownEditor({
           rows={rows}
           autoFocus={autoFocus}
           className="w-full resize-none px-3 py-2 border-0 focus:ring-0 bg-transparent"
+          style={{ minHeight: minHeight || "auto" }}
         />
       )}
     </div>
@@ -152,7 +165,7 @@ export function MarkdownEditor({
 function MarkdownPreview({ content }: { content: string }) {
   // Basic markdown rendering without importing react-markdown (for preview only)
   const lines = content.split("\n");
-  
+
   return (
     <div className="space-y-1">
       {lines.map((line, i) => {
@@ -168,7 +181,7 @@ function MarkdownPreview({ content }: { content: string }) {
         if (processed.startsWith("- ")) {
           processed = "• " + processed.substring(2);
         }
-        
+
         return (
           <p
             key={i}

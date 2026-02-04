@@ -6,11 +6,6 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
-// Legacy routes (not migrated to OpenAPI)
-import { covers } from "./routes/covers";
-import { settingsRouter } from "./routes/settings";
-import { adminRouter } from "./routes/admin";
-
 // OpenAPI routes
 import { authOpenAPI } from "./openapi/auth.handlers";
 import { booksOpenAPI } from "./openapi/books.handlers";
@@ -19,13 +14,17 @@ import { reviewOpenAPI } from "./openapi/review.handlers";
 import { searchOpenAPI } from "./openapi/search.handlers";
 import { importOpenAPI } from "./openapi/import.handlers";
 import { trashOpenAPI } from "./openapi/trash.handlers";
+import { decksOpenAPI } from "./openapi/decks.handlers";
+import { coversOpenAPI } from "./openapi/covers.handlers";
+import { settingsOpenAPI } from "./openapi/settings.handlers";
+import { exportOpenAPI } from "./openapi/export.handlers";
+import { adminOpenAPI } from "./openapi/admin.handlers";
 
 import { runMigrations } from "./db";
 import { seedDatabase } from "./db/seed";
 import { metadataService, HardcoverProvider, OpenLibraryProvider } from "./services";
 import { exportService } from "./services/export";
 import { MarkdownExporter, ObsidianExporter, ReadwiseExporter, NotionExporter } from "./services/export/providers";
-import { exportRoutes } from "./routes/export";
 
 // Email and job services
 import { jobQueueService } from "./services/job-queue";
@@ -81,19 +80,18 @@ app.route("/api/v1/review", reviewOpenAPI);
 app.route("/api/v1/search", searchOpenAPI);
 app.route("/api/v1/import", importOpenAPI);
 app.route("/api/v1/trash", trashOpenAPI);
-
-// Legacy routes (covers, settings, and admin)
-app.route("/api/v1/covers", covers);
-app.route("/api/v1/settings", settingsRouter);
-app.route("/api/v1/admin", adminRouter);
-app.route("/api/v1/export", exportRoutes);
+app.route("/api/v1/decks", decksOpenAPI);
+app.route("/api/v1/covers", coversOpenAPI);
+app.route("/api/v1/settings", settingsOpenAPI);
+app.route("/api/v1/export", exportOpenAPI);
+app.route("/api/v1/admin", adminOpenAPI);
 
 // OpenAPI spec endpoint
 app.doc("/openapi.json", {
   openapi: "3.1.0",
   info: {
     title: "Lektr API",
-    version: "0.0.1",
+    version: "0.2.0",
     description: "API for managing book highlights and spaced repetition review",
   },
   servers: [
@@ -108,7 +106,7 @@ app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 app.get("/", (c) => {
   return c.json({
     name: "Lektr API",
-    version: "0.0.1",
+    version: "0.2.0",
     status: "running",
     docs: "/docs",
   });
@@ -118,7 +116,7 @@ app.get("/", (c) => {
 app.get("/api/v1/version", (c) => {
   return c.json({
     name: "Lektr API",
-    version: "0.0.1",
+    version: "0.2.0",
   });
 });
 

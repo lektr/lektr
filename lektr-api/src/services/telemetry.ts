@@ -1,6 +1,6 @@
 
 import { PostHog } from 'posthog-node';
-import { getSetting } from '../routes/settings';
+import { getSetting } from '../openapi/settings.handlers';
 import { db } from '../db';
 import { books, highlights, tags } from '../db/schema';
 import { sql } from 'drizzle-orm';
@@ -19,19 +19,19 @@ export const telemetryService = {
     try {
       // Check if telemetry is enabled in DB
       const enabled = await getSetting("telemetry_enabled");
-      
+
       // Default to "true" if not set, consistent with our goal
       if (enabled === "false") {
         return;
       }
 
       const apiKey = process.env.POSTHOG_API_KEY || DEFAULT_POSTHOG_KEY;
-      
+
       if (apiKey && apiKey !== "disabled") {
         client = new PostHog(apiKey, {
           host: process.env.POSTHOG_HOST || POSTHOG_HOST,
         });
-        
+
         // Handle errors to prevent crashing
         client.on('error', (err) => {
           console.error('PostHog error:', err);
@@ -90,7 +90,7 @@ export const telemetryService = {
       const [bookCount] = await db.select({ count: sql<number>`count(*)` }).from(books);
       const [highlightCount] = await db.select({ count: sql<number>`count(*)` }).from(highlights);
       const [tagCount] = await db.select({ count: sql<number>`count(*)` }).from(tags);
-      
+
       return {
         totalBooks: Number(bookCount?.count || 0),
         totalHighlights: Number(highlightCount?.count || 0),
@@ -101,7 +101,7 @@ export const telemetryService = {
       return {};
     }
   },
-  
+
   async shutdown() {
     if (client) {
       await client.shutdown();

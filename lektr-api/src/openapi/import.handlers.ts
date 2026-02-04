@@ -13,7 +13,7 @@ import { metadataService } from "../services/metadata";
 import { downloadCover } from "../services/covers";
 import { telemetryService } from "../services/telemetry";
 import { authMiddleware } from "../middleware/auth";
-import { getSetting } from "../routes/settings";
+import { getSetting } from "./settings.handlers";
 import { importRoute } from "./import.routes";
 import type { BaseImporter } from "../importers/base";
 

@@ -367,3 +367,84 @@ export const hardDeleteHighlightRoute = createRoute({
     },
   },
 });
+
+// ============================================
+// Book Study Routes
+// ============================================
+
+// Study Item Schema (reused from decks for consistency)
+const StudyItemSchema = z.object({
+  id: z.string(),
+  front: z.string(),
+  back: z.string(),
+  cardType: z.enum(["basic", "cloze"]),
+  isVirtual: z.boolean(),
+  highlightId: z.string().nullable(),
+  deckId: z.string().nullable(),
+  highlight: z.object({
+    id: z.string(),
+    bookId: z.string(),
+    bookTitle: z.string(),
+  }).nullable(),
+}).openapi("BookStudyItem");
+
+export const getBookStudySessionRoute = createRoute({
+  method: "get",
+  path: "/{id}/study",
+  tags: ["Books", "Study"],
+  summary: "Get book study session",
+  description: "Get a study session with due flashcards linked to this book's highlights, plus virtual cards from raw highlights.",
+  security: [{ cookieAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({ limit: z.string().optional() }),
+  },
+  responses: {
+    200: {
+      description: "Study session cards",
+      content: {
+        "application/json": {
+          schema: z.object({
+            cards: z.array(StudyItemSchema),
+            totalDue: z.number(),
+            totalHighlights: z.number(),
+          }),
+        },
+      },
+    },
+    404: {
+      description: "Book not found",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+export const getBookStudyStatsRoute = createRoute({
+  method: "get",
+  path: "/{id}/study-stats",
+  tags: ["Books", "Study"],
+  summary: "Get book study stats",
+  description: "Get study statistics for a book (due card count, total highlights) for UI display.",
+  security: [{ cookieAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: "Study stats",
+      content: {
+        "application/json": {
+          schema: z.object({
+            dueCount: z.number(),
+            cardCount: z.number(),
+            highlightCount: z.number(),
+          }),
+        },
+      },
+    },
+    404: {
+      description: "Book not found",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});

@@ -1,26 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getBook, deleteBook, deleteHighlight, updateBook, updateHighlight, getCoverUrl, getSettings, removeTagFromHighlight, removeTagFromBook, type Highlight } from "@/lib/api";
+import { getBook, deleteBook, deleteHighlight, updateBook, updateHighlight, getCoverUrl, getSettings, removeTagFromHighlight, removeTagFromBook, getBookStudyStats, type Highlight } from "@/lib/api";
 import { EditBookModal } from "@/components/edit-book-modal";
 import { EditHighlightModal } from "@/components/edit-highlight-modal";
 import { TagList } from "@/components/tag-badge";
 import { TagSelector } from "@/components/tag-selector";
 import { BookTagSelector } from "@/components/book-tag-selector";
 import { HighlightCard } from "@/components/highlight-card";
+import { CardFormModal } from "@/components/card-form-modal";
 import { BookCover } from "@/components/book-cover";
 import { getBookGradient } from "@/lib/colors";
-import { ChevronLeft, Edit2, Trash2, MoreHorizontal, FileText, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { ChevronLeft, FileText, Search, Download, Edit2, Trash2, Tag, Zap } from "lucide-react";
 import { ExportModal } from "@/components/export-modal";
 
 export default function BookDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+  const targetHighlightId = searchParams.get("highlight");
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditBook, setShowEditBook] = useState(false);
@@ -29,6 +33,11 @@ export default function BookDetailPage() {
   const [tagSelectorHighlight, setTagSelectorHighlight] = useState<string | null>(null);
   const [showBookTagSelector, setShowBookTagSelector] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [flashcardHighlight, setFlashcardHighlight] = useState<Highlight | null>(null);
+
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
 
   // Fetch settings for collapse length (passed to cards)
   const { data: settingsData } = useQuery({
@@ -42,6 +51,30 @@ export default function BookDetailPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
+  });
+
+  // Scroll to target highlight when data loads and query param is present
+  useEffect(() => {
+    if (targetHighlightId && data?.highlights) {
+      // Small delay to ensure DOM is rendered
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`highlight-${targetHighlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          setHighlightedId(targetHighlightId);
+          // Remove glow after animation
+          setTimeout(() => setHighlightedId(null), 3000);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [targetHighlightId, data]);
+
+  // Fetch study stats for the Smart Review button
+  const { data: studyStats } = useQuery({
+    queryKey: ["book-study-stats", bookId],
+    queryFn: () => getBookStudyStats(bookId),
+    staleTime: 30 * 1000, // 30 seconds
   });
 
   const deleteBookMutation = useMutation({
@@ -77,15 +110,60 @@ export default function BookDetailPage() {
     },
   });
 
+  // Derived State
+  const toggleTag = (tagId: string) => {
+    const newTags = new Set(activeTags);
+    if (newTags.has(tagId)) {
+      newTags.delete(tagId);
+    } else {
+      newTags.add(tagId);
+    }
+    setActiveTags(newTags);
+  };
+
+  const filteredHighlights = data?.highlights.filter(h => {
+    // Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const contentMatch = h.content.toLowerCase().includes(q);
+      const noteMatch = h.note?.toLowerCase().includes(q);
+      if (!contentMatch && !noteMatch) return false;
+    }
+
+    // Tag Filter
+    if (activeTags.size > 0) {
+      if (!h.tags || h.tags.length === 0) return false;
+      const hasTag = h.tags.some(t => activeTags.has(t.id));
+      if (!hasTag) return false;
+    }
+
+    return true;
+  }) || [];
+
+  // Get all unique tags from highlights
+  const allTags = data?.highlights.flatMap(h => h.tags || []) || [];
+  const uniqueTagsMap = new Map();
+  allTags.forEach(t => {
+     if (!uniqueTagsMap.has(t.id)) {
+       uniqueTagsMap.set(t.id, { ...t, count: 0 });
+     }
+     uniqueTagsMap.get(t.id).count++;
+  });
+  const uniqueTags = Array.from(uniqueTagsMap.values()).sort((a, b) => b.count - a.count);
+
+
   if (isLoading) {
     return (
       <div className="container py-12 flex justify-center">
-        <div className="animate-pulse space-y-8 max-w-3xl w-full">
-          <div className="flex gap-6">
-            <div className="w-32 h-48 bg-muted rounded-xl" />
-            <div className="space-y-4 flex-1 py-4">
-              <div className="h-8 bg-muted rounded w-3/4" />
+        <div className="animate-pulse space-y-8 max-w-5xl w-full">
+          <div className="flex gap-8">
+            <div className="w-1/3 space-y-4">
+               <div className="w-full aspect-[2/3] bg-muted rounded-xl" />
+            </div>
+            <div className="flex-1 space-y-4 py-4">
+              <div className="h-10 bg-muted rounded w-3/4" />
               <div className="h-6 bg-muted rounded w-1/2" />
+              <div className="h-40 bg-muted rounded w-full mt-8" />
             </div>
           </div>
         </div>
@@ -108,10 +186,9 @@ export default function BookDetailPage() {
   const { book, highlights } = data;
 
   return (
-
-    <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 pt-6 pb-8 sm:pt-8 sm:pb-12 animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-6 pb-20 animate-fade-in relative">
       {/* Top Navigation / Breadcrumbs */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center justify-between gap-4 mb-8">
         <Link
           href="/library"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50 -ml-3"
@@ -121,138 +198,214 @@ export default function BookDetailPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] gap-8 lg:gap-12 items-start">
-        {/* Left Sidebar (Sticky) */}
-        <aside className="space-y-6 md:sticky md:top-24">
-          <div className="relative group">
-            <BookCover book={book} />
-
-            {/* Quick Stats Overlay (Desktop) */}
-            <div className="absolute top-3 right-3 md:right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-              {highlights.length}
-            </div>
+      {/* Book Header (Single Column) */}
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
+          {/* Cover */}
+          <div className="shrink-0 mx-auto sm:mx-0">
+              <BookCover book={book} size="md" className="w-32 sm:w-48" />
           </div>
 
-          <div className="space-y-4 text-center md:text-left">
-             <div className="flex flex-col gap-2">
-                {book.sourceType && (
-                  <div className="text-sm font-medium text-muted-foreground flex items-center justify-center md:justify-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary/60"></span>
-                    {book.sourceType === 'web' ? 'Web Highlight' :
-                     book.sourceType === 'kindle' ? 'Kindle Import' :
-                     book.sourceType === 'koreader' ? 'KOReader Import' :
-                     book.sourceType === 'readwise' ? 'Readwise Import' :
-                     book.sourceType === 'manual' ? 'Manual Entry' :
-                     `${book.sourceType} Import`}
-                  </div>
-                )}
-                <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-2">
-                   <FileText className="w-4 h-4" />
-                   {highlights.length} {highlights.length === 1 ? 'highlight' : 'highlights'}
-                </div>
-             </div>
-
-             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <TagList tags={book.tags || []} />
-              <button
-                onClick={() => setShowBookTagSelector(true)}
-                className="text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 px-3 py-1 rounded-full transition-colors border border-dashed border-border hover:border-primary/30 cursor-pointer"
-              >
-                + Tag
-              </button>
-            </div>
-
-
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="min-w-0">
-          {/* Header Actions */}
-          <div className="flex flex-col gap-6 mb-8">
-             <div className="w-full">
+          {/* Book Info & Actions */}
+          <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left space-y-5">
+              <div className="space-y-2">
                 <h1
-                  className={`font-serif font-bold tracking-tight text-foreground mb-2 leading-tight break-words ${
-                    book.title.length > 100
-                      ? "text-2xl sm:text-3xl md:text-4xl"
-                      : book.title.length > 60
-                        ? "text-3xl sm:text-4xl md:text-5xl"
-                        : "text-4xl sm:text-5xl md:text-6xl"
+                  className={`font-serif font-bold tracking-tight text-foreground leading-tight ${
+                    book.title.length > 60 ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl"
                   }`}
-                  style={{ wordBreak: 'break-word' }}
                 >
                   {book.title}
                 </h1>
                 <p className="text-xl text-muted-foreground font-medium">
                   {book.author || "Unknown Author"}
                 </p>
-             </div>
+              </div>
 
-             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <Link href={`/review`} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors cursor-pointer">
-                  <span className="text-lg">🧠</span> <span>Review</span>
-                </Link>
-                <button
-                  onClick={() => setShowExportModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-muted/50 hover:bg-muted rounded-full transition-colors cursor-pointer"
-                  title="Export Highlights"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Export</span>
-                </button>
+              {/* Stats / Metadata */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-sm text-muted-foreground">
+                 <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-md border border-border/40">
+                   <FileText className="w-3.5 h-3.5" />
+                   {highlights.length} highlights
+                 </span>
+                 {book.sourceType && (
+                   <span className="capitalize opacity-80 bg-muted/40 px-2.5 py-1 rounded-md border border-border/40">
+                     Via {book.sourceType}
+                   </span>
+                 )}
+                 {book.tags && book.tags.length > 0 && (
+                    <TagList tags={book.tags} size="xs" />
+                 )}
+              </div>
 
-                <div className="w-px h-6 bg-border mx-1 hidden sm:block" />
+              {/* Primary Actions */}
+              <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3 w-full">
+                  <Link
+                     href={`/study/book/${bookId}`}
+                     className="btn btn-primary h-11 px-6 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-2 font-semibold"
+                   >
+                     <Zap className="w-4 h-4" />
+                     {studyStats?.dueCount && studyStats.dueCount > 0
+                       ? `Review ${studyStats.dueCount} Due`
+                       : studyStats?.highlightCount && studyStats.highlightCount > 0
+                         ? "Review Highlights"
+                         : "Start Review"
+                     }
+                   </Link>
 
-                <button
-                  onClick={() => setShowEditBook(true)}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground bg-muted/50 hover:bg-muted rounded-full transition-colors cursor-pointer"
-                  title="Edit Metadata"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  <span className="sr-only sm:not-sr-only sm:inline-block">Edit</span>
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-error/80 hover:text-error hover:bg-error/10 rounded-full transition-colors cursor-pointer"
-                  title="Delete Book"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="inline-block">Delete</span>
-                </button>
-             </div>
+                   <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-full border border-border/40">
+                      <button
+                        onClick={() => setShowBookTagSelector(true)}
+                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-full transition-all"
+                        title="Tag Book"
+                      >
+                        <Tag className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-border/40" />
+                      <button
+                        onClick={() => setShowExportModal(true)}
+                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-full transition-all"
+                        title="Export"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-border/40" />
+                      <button
+                        onClick={() => setShowEditBook(true)}
+                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-full transition-all"
+                        title="Edit Metadata"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-border/40" />
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="p-2 text-muted-foreground hover:text-error hover:bg-error/10 rounded-full transition-all"
+                        title="Delete Book"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                   </div>
+              </div>
           </div>
-
-          {/* Highlights Stream */}
-          <div className="space-y-6">
-            {highlights.length === 0 ? (
-               <div className="text-center py-24 bg-muted/20 rounded-2xl border border-dashed border-border flex flex-col items-center justify-center">
-                 <div className="w-16 h-16 mb-4 bg-muted rounded-full flex items-center justify-center opacity-50">
-                   <FileText className="w-8 h-8" />
-                 </div>
-                 <p className="text-lg font-medium text-foreground">No highlights yet</p>
-                 <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
-                   This book creates a nice space on your shelf, but needs some highlights to come alive.
-                 </p>
-               </div>
-            ) : (
-              highlights.map((highlight) => (
-                <HighlightCard
-                  key={highlight.id}
-                  highlight={highlight}
-                  collapseLength={COLLAPSE_LENGTH}
-                  showBookInfo={false}
-                  onEdit={() => setHighlightToEdit(highlight)}
-                  onDelete={() => setHighlightToDelete({
-                    id: highlight.id,
-                    preview: highlight.content.slice(0, 100)
-                  })}
-                  onAddTag={() => setTagSelectorHighlight(highlight.id)}
-                />
-              ))
-            )}
-          </div>
-        </main>
       </div>
+
+      {/* Sticky Search & Filter Bar */}
+      <div className="sticky top-20 z-40 mb-8 -mx-2 px-2">
+         <div className="bg-background/80 backdrop-blur-md border border-border/60 shadow-sm rounded-2xl p-2 sm:p-2.5 flex flex-col md:flex-row gap-3 md:items-center">
+            {/* Search Input */}
+            <div className="relative flex-1">
+               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                  <Search className="w-4 h-4" />
+               </div>
+               <input
+                 type="text"
+                 placeholder="Search highlights..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="w-full h-10! min-h-0! py-0! pl-10! pr-4! rounded-xl bg-muted/50 border-none focus:ring-1 focus:ring-primary/20 text-sm transition-all leading-10 hover:bg-muted/80 placeholder:text-muted-foreground/60"
+               />
+
+               {/* Clear Search Button (if text exists) */}
+               {searchQuery && (
+                 <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                 >
+                   <span className="sr-only">Clear</span>
+                   <span className="block w-4 h-4 rounded-full bg-border/50 text-[10px] flex items-center justify-center text-foreground">✕</span>
+                 </button>
+               )}
+            </div>
+
+            {/* Tags / Actions */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+               {/* Vertical Divider */}
+               {uniqueTags.length > 0 && <div className="w-px h-6 bg-border/40 mx-1 shrink-0" />}
+
+               {/* Tag Filter Chips */}
+               {uniqueTags.map((tag) => (
+                 <button
+                   key={tag.id}
+                   onClick={() => toggleTag(tag.id)}
+                   className={`
+                     shrink-0 h-10 px-3.5 rounded-xl text-xs font-medium transition-all border flex items-center gap-1.5
+                     ${activeTags.has(tag.id)
+                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                       : "bg-card text-muted-foreground border-border/60 hover:bg-muted hover:text-foreground"}
+                   `}
+                 >
+                   #{tag.name}
+                   <span className={`opacity-60 text-[10px] ${activeTags.has(tag.id) ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                      {tag.count}
+                   </span>
+                 </button>
+               ))}
+            </div>
+         </div>
+      </div>
+
+      {/* Highlights Stream */}
+           <div className="space-y-6">
+             {filteredHighlights.length === 0 ? (
+                <div className="text-center py-24 bg-muted/20 rounded-2xl border border-dashed border-border flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 mb-4 bg-muted rounded-full flex items-center justify-center opacity-50">
+                    {searchQuery || activeTags.size > 0 ? (
+                       <span className="text-2xl">🔍</span>
+                    ) : (
+                       <FileText className="w-8 h-8" />
+                    )}
+                  </div>
+                  <p className="text-lg font-medium text-foreground">
+                    {searchQuery || activeTags.size > 0 ? "No matches found" : "No highlights yet"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+                    {searchQuery || activeTags.size > 0
+                      ? "Try adjusting your filters or search terms."
+                      : "Start reading and adding highlights to see them here."}
+                  </p>
+                  {(searchQuery || activeTags.size > 0) && (
+                    <button
+                      onClick={() => { setSearchQuery(""); setActiveTags(new Set()); }}
+                      className="mt-4 text-sm text-primary hover:underline"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+             ) : (
+               filteredHighlights.map((highlight) => (
+                 <div
+                   key={highlight.id}
+                   id={`highlight-${highlight.id}`}
+                   className={`transition-all duration-500 rounded-xl ${
+                     highlightedId === highlight.id
+                       ? "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse"
+                       : ""
+                   }`}
+                 >
+                   <HighlightCard
+                     highlight={highlight}
+                     collapseLength={COLLAPSE_LENGTH}
+                     showBookInfo={false}
+                     searchQuery={searchQuery}
+                     onEdit={() => setHighlightToEdit(highlight)}
+                     onDelete={() => setHighlightToDelete({
+                       id: highlight.id,
+                       preview: highlight.content.slice(0, 100)
+                     })}
+                     onAddTag={() => setTagSelectorHighlight(highlight.id)}
+                     onCreateFlashcard={() => setFlashcardHighlight({ ...highlight, bookTitle: book.title })}
+                   />
+                 </div>
+               ))
+             )}
+
+             {/* Results Count Footer */}
+             {filteredHighlights.length > 0 && (
+               <div className="text-center py-8 text-xs text-muted-foreground opacity-60">
+                 Showing {filteredHighlights.length} of {highlights.length} highlights
+               </div>
+             )}
+           </div>
 
       {/* Modals */}
       {showEditBook && (
@@ -290,12 +443,14 @@ export default function BookDetailPage() {
          />
       )}
 
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        bookIds={[bookId]}
-        bookTitle={book.title}
-      />
+      {showExportModal && (
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          bookIds={[bookId]}
+          bookTitle={book.title}
+        />
+      )}
 
       {tagSelectorHighlight && (
         <TagSelector
@@ -303,6 +458,14 @@ export default function BookDetailPage() {
           bookId={bookId}
           currentTags={highlights.find(h => h.id === tagSelectorHighlight)?.tags || []}
           onClose={() => setTagSelectorHighlight(null)}
+        />
+      )}
+
+      {flashcardHighlight && (
+        <CardFormModal
+          isOpen={true}
+          highlight={flashcardHighlight}
+          onClose={() => setFlashcardHighlight(null)}
         />
       )}
 

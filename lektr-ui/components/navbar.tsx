@@ -46,9 +46,9 @@ export function Navbar() {
           {user && (
             <div className="flex items-center gap-1 p-1 rounded-full border border-border/50 bg-background/50 shadow-sm">
               <NavLink href="/library">Library</NavLink>
+              <NavLink href="/decks">Decks</NavLink>
               <NavLink href="/tags">Tags</NavLink>
               <NavLink href="/sync">Sync</NavLink>
-              <NavLink href="/review">Review</NavLink>
               {user.role === "admin" && (
                 <NavLink href="/admin/settings">Admin</NavLink>
               )}
