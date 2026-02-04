@@ -45,11 +45,13 @@ export function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 transition-all">
       <div className="container flex items-center h-[72px] gap-4 relative">
-        {/* Mobile Search Overlay - Takes over header when open */}
-        {isSearchOpen ? (
+
+
+        {/* Mobile Search Overlay - Full width on mobile when open */}
+        {isSearchOpen && (
           <form
             onSubmit={handleSearch}
-            className="absolute inset-0 px-4 bg-background z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200"
+            className="md:hidden absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center px-4 gap-2 animate-in fade-in zoom-in-95 duration-200"
           >
             <div className="relative flex-1">
               <input
@@ -59,22 +61,24 @@ export function Navbar() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onBlur={() => !searchQuery && setIsSearchOpen(false)}
                 placeholder="Search..."
-                className="w-full h-10 pl-4 pr-4 text-base bg-muted/50 border-none rounded-full focus:ring-1 focus:ring-primary/20 transition-all"
+                className="w-full h-10 pl-4 pr-10 text-base bg-muted/50 border-none rounded-full focus:ring-1 focus:ring-primary/20"
               />
             </div>
+            {/* Toggle Button in Overlay (closes search) */}
             <button
               type="button"
-              onMouseDown={() => setIsSearchOpen(false)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2"
+              onClick={() => setIsSearchOpen(false)}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted/50 rounded-full cursor-pointer shrink-0"
             >
-              Cancel
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </button>
           </form>
-        ) : (
-          /* Normal Header Content */
-          <>
-            {/* Mobile Menu Button - Left */}
-            <div className="md:hidden z-10 flex-shrink-0">
+        )}
+
+        {/* Mobile Menu Button - Left */}
+        <div className="md:hidden z-10 shrink-0">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted/50"
@@ -93,7 +97,7 @@ export function Navbar() {
             </div>
 
             {/* Brand - Absolute Center on Mobile, Left on Desktop */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:static md:translate-x-0 md:translate-y-0 md:flex-1 md:flex md:justify-start">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:static md:translate-x-0 md:translate-y-0 md:flex-1 md:flex md:justify-start z-20">
               <Link href="/" className="hover:opacity-80 transition-opacity flex items-center" onClick={closeMobileMenu}>
                 <Logo />
               </Link>
@@ -120,19 +124,19 @@ export function Navbar() {
                 <>
                   {user ? (
                     <>
-                      {/* Search Trigger */}
-                      <div className="relative flex items-center">
-                        {/* Desktop Search */}
+                      {/* Search */}
+                      <div className="relative flex items-center gap-2">
+                        {/* Desktop Search - Always visible on md+ */}
                         <form onSubmit={handleSearch} className="hidden md:flex relative items-center w-64">
                           <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search books..."
-                            className="w-full h-9 pl-11 pr-4 text-sm bg-muted/50 border-none rounded-full focus:ring-1 focus:ring-primary/20"
+                            className="w-full h-9 pl-10! pr-4 text-sm bg-muted/50 border-none rounded-full focus:ring-1 focus:ring-primary/20"
                           />
                           <svg
-                             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+                             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
                              fill="none"
                              stroke="currentColor"
                              viewBox="0 0 24 24"
@@ -141,16 +145,20 @@ export function Navbar() {
                            </svg>
                         </form>
 
-                        {/* Mobile Search Button */}
-                        <button
-                          onClick={() => setIsSearchOpen(true)}
-                          className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted/50 rounded-full cursor-pointer"
-                          title="Search"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                        </button>
+                        {/* Mobile Search Button - Visible only on mobile when search is closed */}
+                        {!isSearchOpen && (
+                          <div className="md:hidden">
+                            <button
+                              onClick={() => setIsSearchOpen(true)}
+                              className="flex p-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted/50 rounded-full cursor-pointer"
+                              title="Search"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Desktop Only: Theme Toggle and User Menu */}
@@ -173,8 +181,6 @@ export function Navbar() {
                 </>
               )}
             </div>
-          </>
-        )}
       </div>
 
       {/* Mobile Menu Overlay */}
