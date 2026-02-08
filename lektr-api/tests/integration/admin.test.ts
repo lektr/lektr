@@ -43,9 +43,9 @@ describe("Admin Email Routes", () => {
     mockEmailService.testConnection.mockClear();
 
     // Import router
-    const { adminRouter } = await import("../../src/routes/admin");
+    const { adminOpenAPI } = await import("../../src/openapi/admin.handlers");
     app = new Hono();
-    app.route("/admin", adminRouter);
+    app.route("/admin", adminOpenAPI);
   });
 
   test("GET /email-settings should return settings with masked password", async () => {
@@ -84,7 +84,11 @@ describe("Admin Email Routes", () => {
   test("POST /test should return 403 for non-admin", async () => {
     const res = await app.request("/admin/email-settings/test", {
       method: "POST",
-      headers: { "x-mock-role": "user" }
+      headers: {
+        "x-mock-role": "user",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email: "test@example.com" })
     });
     expect(res.status).toBe(403);
   });

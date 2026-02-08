@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll } from "vitest";
 import { readFileSync } from "fs";
+import path from "path";
 import { KOReaderImporter } from "../src/importers/koreader";
 
 describe("KOReaderImporter", () => {
@@ -42,7 +43,7 @@ describe("KOReaderImporter", () => {
   describe("parse - modern format (JSON/1.0.0 with entries)", () => {
     test("parses live KOReader export", async () => {
       const sampleJson = readFileSync(
-        "./tests/fixtures/live-example.json",
+        path.resolve(__dirname, "fixtures/live-example.json"),
         "utf-8"
       );
       const file = new File([sampleJson], "export.json", {
@@ -59,7 +60,7 @@ describe("KOReaderImporter", () => {
 
     test("extracts highlight content and metadata from entries", async () => {
       const sampleJson = readFileSync(
-        "./tests/fixtures/live-example.json",
+        path.resolve(__dirname, "fixtures/live-example.json"),
         "utf-8"
       );
       const file = new File([sampleJson], "export.json", {
@@ -77,7 +78,7 @@ describe("KOReaderImporter", () => {
 
     test("uses md5sum as externalId", async () => {
       const sampleJson = readFileSync(
-        "./tests/fixtures/live-example.json",
+        path.resolve(__dirname, "fixtures/live-example.json"),
         "utf-8"
       );
       const file = new File([sampleJson], "export.json", {
@@ -92,7 +93,7 @@ describe("KOReaderImporter", () => {
   describe("parse - legacy format", () => {
     test("parses legacy format with highlight object", async () => {
       const sampleJson = readFileSync(
-        "./tests/fixtures/koreader-sample.json",
+        path.resolve(__dirname, "fixtures/koreader-sample.json"),
         "utf-8"
       );
       const file = new File([sampleJson], "metadata.json", {
@@ -109,7 +110,7 @@ describe("KOReaderImporter", () => {
 
     test("parses multiple books from array", async () => {
       const sampleJson = readFileSync(
-        "./tests/fixtures/koreader-multiple-books.json",
+        path.resolve(__dirname, "fixtures/koreader-multiple-books.json"),
         "utf-8"
       );
       const file = new File([sampleJson], "metadata.json", {

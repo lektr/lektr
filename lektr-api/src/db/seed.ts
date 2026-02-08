@@ -1,6 +1,6 @@
 import { db } from "./index";
 import { users } from "./schema";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 /**
  * Seed the database with initial data for development.
@@ -20,7 +20,7 @@ export async function seedDatabase() {
     if (existingUsers.length === 0) {
       // Hash password at runtime to ensure it works
       const passwordHash = await bcrypt.hash(adminPassword, 10);
-      
+
       // Create admin user with admin role
       await db.insert(users).values({
         id: "00000000-0000-0000-0000-000000000001",

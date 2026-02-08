@@ -28,7 +28,7 @@ export class ObsidianExporter implements ExportProvider {
     }
 
     // Multiple books - combined with clear separators
-    const sections = books.map((book) => 
+    const sections = books.map((book) =>
       this.generateObsidianMarkdown(book, includeNotes, includeTags)
     );
     const combined = sections.join("\n\n---\n\n");
@@ -118,6 +118,7 @@ export class ObsidianExporter implements ExportProvider {
   }
 
   private escapeYaml(str: string): string {
-    return str.replace(/"/g, '\\"').replace(/\n/g, " ");
+    // Escape backslashes first to prevent escape sequence injection
+    return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ");
   }
 }

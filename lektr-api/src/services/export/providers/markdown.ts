@@ -67,7 +67,7 @@ export class MarkdownExporter implements ExportProvider {
     for (const highlight of book.highlights) {
       // Quote block
       lines.push(`> ${highlight.content.replace(/\n/g, "\n> ")}`);
-      
+
       // Location info
       const location: string[] = [];
       if (highlight.chapter) location.push(highlight.chapter);
@@ -95,6 +95,7 @@ export class MarkdownExporter implements ExportProvider {
   }
 
   private escapeYaml(str: string): string {
-    return str.replace(/"/g, '\\"').replace(/\n/g, " ");
+    // Escape backslashes first to prevent escape sequence injection
+    return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ");
   }
 }

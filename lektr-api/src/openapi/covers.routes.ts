@@ -21,13 +21,16 @@ export const getCoverRoute = createRoute({
       description: "Cover image binary",
       content: {
         "image/jpeg": {
-          schema: z.any(),
+          schema: z.string().openapi({ format: "binary" }),
         },
         "image/png": {
-          schema: z.any(),
+          schema: z.string().openapi({ format: "binary" }),
         },
         "image/webp": {
-          schema: z.any(),
+          schema: z.string().openapi({ format: "binary" }),
+        },
+        "application/octet-stream": {
+          schema: z.string().openapi({ format: "binary" }),
         },
       },
     },

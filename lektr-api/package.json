@@ -20,7 +20,7 @@
     "@react-email/components": "^1.0.6",
     "@react-email/render": "^2.0.4",
     "@squeakyrobot/fsrs": "^1.0.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.38.0",
     "hono": "^4.6.0",
@@ -34,14 +34,12 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.0.0",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^7.0.9",
     "@types/react": "^19.2.10",
-    "bcryptjs": "^3.0.3",
-    "drizzle-kit": "^0.30.0",
+    "drizzle-kit": "^0.31.0",
     "vitest": "^3.0.0"
   }
 }

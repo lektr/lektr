@@ -126,7 +126,7 @@ describe("Auth API Logic", () => {
         .setIssuedAt()
         .sign(secret1);
 
-      expect(jose.jwtVerify(token, secret2)).rejects.toThrow();
+      await expect(jose.jwtVerify(token, secret2)).rejects.toThrow();
     });
 
     test("should reject expired JWT", async () => {
@@ -139,7 +139,7 @@ describe("Auth API Logic", () => {
         .setExpirationTime("-1h") // Expired 1 hour ago
         .sign(secret);
 
-      expect(jose.jwtVerify(token, secret)).rejects.toThrow();
+      await expect(jose.jwtVerify(token, secret)).rejects.toThrow();
     });
   });
 

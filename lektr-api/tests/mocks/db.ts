@@ -3,6 +3,7 @@ import { vi } from "vitest";
 // Create a fresh mock database that can be reset between tests
 const createMockDb = () => {
   let response: any[] = [];
+  let executeResponse: any[] = [];
 
   const chainable: any = {
     select: vi.fn(() => chainable),
@@ -21,7 +22,15 @@ const createMockDb = () => {
     rightJoin: vi.fn(() => chainable),
     returning: vi.fn(() => chainable),
     onConflictDoUpdate: vi.fn(() => chainable),
-    execute: vi.fn(() => Promise.resolve({ rows: [] })),
+
+    // execute() returns an iterable array-like result for raw SQL
+    execute: vi.fn(() => {
+      // Create an array that is iterable and also has rows property
+      const result = executeResponse.length > 0 ? executeResponse.shift() : [];
+      const iterableResult = [...result];
+      Object.defineProperty(iterableResult, 'rows', { value: result });
+      return Promise.resolve(iterableResult);
+    }),
 
     // Make chainable "thenable" so it can be awaited
     then: (onfulfilled?: any, onrejected?: any) => {
@@ -37,13 +46,19 @@ const createMockDb = () => {
       }
     },
 
-    // Set what the mock should return
+    // Set what the mock should return for chainable queries
     $setResponse: (newResponse: any[]) => {
       response = newResponse;
       return chainable;
     },
 
-    // Queue multiple responses [response1, response2]
+    // Set responses for execute() calls (queued in order)
+    $setExecuteResponse: (...responses: any[][]) => {
+      executeResponse = responses;
+      return chainable;
+    },
+
+    // Queue multiple responses [response1, response2] for chainable queries
     $queueResponses: (responses: any[][]) => {
       response = responses;
       return chainable;
@@ -52,6 +67,7 @@ const createMockDb = () => {
     // Reset all mocks
     $reset: () => {
       response = [];
+      executeResponse = [];
       chainable.select.mockClear();
       chainable.from.mockClear();
       chainable.where.mockClear();
@@ -63,6 +79,7 @@ const createMockDb = () => {
       chainable.update.mockClear();
       chainable.set.mockClear();
       chainable.delete.mockClear();
+      chainable.execute.mockClear();
       return chainable;
     }
   };

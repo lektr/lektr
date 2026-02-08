@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import DOMPurify from "isomorphic-dompurify";
 
 interface MarkdownEditorProps {
   value: string;
@@ -185,7 +186,7 @@ function MarkdownPreview({ content }: { content: string }) {
         return (
           <p
             key={i}
-            dangerouslySetInnerHTML={{ __html: processed || "&nbsp;" }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processed || "&nbsp;") }}
             className={line.startsWith("- ") ? "pl-2" : ""}
           />
         );

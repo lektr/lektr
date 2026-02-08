@@ -4,11 +4,7 @@
  * Sends emails using Nodemailer with SMTP configuration loaded from DB or environment.
  */
 
-import type NodemailerType from "nodemailer";
-import type { Transporter } from "nodemailer";
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const nodemailer: typeof NodemailerType = require("nodemailer");
+import nodemailer, { type Transporter } from "nodemailer";
 import { db } from "../db";
 import { settings } from "../db/schema";
 import { eq } from "drizzle-orm";

@@ -23,12 +23,10 @@ coversOpenAPI.openapi(getCoverRoute, async (c) => {
     const contentType =
       ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
 
-    return new Response(data, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000", // Cache for 1 year
-      },
-    });
+    return c.body(data, 200, {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=31536000", // Cache for 1 year
+    }) as any;
   } catch (error) {
     console.error("Failed to serve cover:", error);
     return c.json({ error: "Failed to serve cover" }, 500);
