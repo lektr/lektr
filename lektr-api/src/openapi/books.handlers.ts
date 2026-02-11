@@ -46,7 +46,7 @@ booksOpenAPI.openapi(listBooksRoute, async (c) => {
       const [result] = await db
         .select({
           count: count(),
-          lastHighlightedAt: max(highlights.highlightedAt),
+          lastHighlightedAt: max(sql`COALESCE(${highlights.highlightedAt}, ${highlights.createdAt})`),
         })
         .from(highlights)
         .where(and(eq(highlights.bookId, book.id), isNull(highlights.deletedAt)));
@@ -62,7 +62,7 @@ booksOpenAPI.openapi(listBooksRoute, async (c) => {
         createdAt: book.createdAt.toISOString(),
         pinnedAt: book.pinnedAt?.toISOString() ?? null,
         highlightCount: result?.count ?? 0,
-        lastHighlightedAt: result?.lastHighlightedAt?.toISOString() ?? null,
+        lastHighlightedAt: result?.lastHighlightedAt ? new Date(result.lastHighlightedAt as unknown as string).toISOString() : null,
         tags: bookTagsList,
       };
     })
