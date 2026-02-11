@@ -34,7 +34,7 @@ authOpenAPI.openapi(loginRoute, async (c) => {
   try {
     const { user, token } = await authService.signIn(email, password);
     c.header("Set-Cookie", getCookieOptions(token, 60 * 60 * 24 * 7));
-    return c.json({ success: true, user }, 200);
+    return c.json({ success: true, user, token }, 200);
   } catch (error) {
     if (error instanceof AuthError && error.code === "INVALID_CREDENTIALS") {
       return c.json({ error: error.message }, 401);

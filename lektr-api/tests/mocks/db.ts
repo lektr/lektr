@@ -22,6 +22,12 @@ const createMockDb = () => {
     rightJoin: vi.fn(() => chainable),
     returning: vi.fn(() => chainable),
     onConflictDoUpdate: vi.fn(() => chainable),
+    onConflictDoNothing: vi.fn(() => chainable),
+
+    // Transaction support - executes callback with the same chainable as tx
+    transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => {
+      return cb(chainable);
+    }),
 
     // execute() returns an iterable array-like result for raw SQL
     execute: vi.fn(() => {

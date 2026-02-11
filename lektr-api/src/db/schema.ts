@@ -109,6 +109,7 @@ export const books = pgTable("books", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete marker
 });
 
 // Highlights Table

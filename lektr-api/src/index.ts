@@ -19,6 +19,8 @@ import { coversOpenAPI } from "./openapi/covers.handlers";
 import { settingsOpenAPI } from "./openapi/settings.handlers";
 import { exportOpenAPI } from "./openapi/export.handlers";
 import { adminOpenAPI } from "./openapi/admin.handlers";
+import { syncOpenAPI } from "./openapi/sync.handlers";
+
 
 import { runMigrations } from "./db";
 import { seedDatabase } from "./db/seed";
@@ -85,6 +87,7 @@ app.route("/api/v1/covers", coversOpenAPI);
 app.route("/api/v1/settings", settingsOpenAPI);
 app.route("/api/v1/export", exportOpenAPI);
 app.route("/api/v1/admin", adminOpenAPI);
+app.route("/api/v1/sync", syncOpenAPI);
 
 // OpenAPI spec endpoint
 app.doc("/openapi.json", {

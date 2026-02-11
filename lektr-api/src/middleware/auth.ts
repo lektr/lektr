@@ -18,8 +18,15 @@ declare module "hono" {
  * Use this on protected routes.
  */
 export const authMiddleware = createMiddleware(async (c, next) => {
-  const cookie = c.req.header("Cookie");
-  const token = cookie?.match(/token=([^;]+)/)?.[1];
+  // Try Bearer token first (mobile), then cookie (web)
+  const authHeader = c.req.header("Authorization");
+  let token: string | undefined;
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else {
+    const cookie = c.req.header("Cookie");
+    token = cookie?.match(/token=([^;]+)/)?.[1];
+  }
 
   if (!token) {
     return c.json({ error: "Authentication required" }, 401);
