@@ -122,7 +122,7 @@ Unlike other tools that charge monthly fees for your own data, Lektr can be depl
 
 ```
 ┌─────────────┐     ┌──────────────────────────┐     ┌────────────┐
-│  Mobile App │────▶│       Lektr API          │◀────│  Browser   │
+│  Mobile App │───▶│       Lektr API          │◀───│  Browser   │
 │ (React      │     │  (Hono + Drizzle ORM)    │     │ Extension  │
 │  Native)    │     └────────────┬─────────────┘     └────────────┘
 └─────────────┘                  │
