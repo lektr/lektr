@@ -243,7 +243,7 @@ syncOpenAPI.openapi(
              title: book.title,
              author: book.author,
              coverImageUrl: book.cover_image_url,
-             sourceType: 'lektr',
+             sourceType: 'manual',
              createdAt: new Date(book.created_at),
              updatedAt: new Date(book.updated_at),
            }).onConflictDoNothing();

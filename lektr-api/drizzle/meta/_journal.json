@@ -78,6 +78,13 @@
       "when": 1770759983629,
       "tag": "0010_add_deleted_at_to_books",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770784380000,
+      "tag": "0011_add_lektr_source_type",
+      "breakpoints": true
     }
   ]
 }
