@@ -122,12 +122,12 @@ Unlike other tools that charge monthly fees for your own data, Lektr can be depl
 
 ```
 ┌─────────────┐     ┌──────────────────────────┐     ┌────────────┐
-│  Mobile App │────▶│       Lektr API           │◀────│  Browser   │
-│ (React      │     │  (Hono + Drizzle ORM)     │     │ Extension  │
-│  Native)    │     └────────────┬───────────────┘     └────────────┘
+│  Mobile App │────▶│       Lektr API          │◀────│  Browser   │
+│ (React      │     │  (Hono + Drizzle ORM)    │     │ Extension  │
+│  Native)    │     └────────────┬─────────────┘     └────────────┘
 └─────────────┘                  │
                     ┌────────────┴───────────────┐
-                    │     PostgreSQL Database     │
+                    │     PostgreSQL Database    │
                     └────────────────────────────┘
                     ┌────────────────────────────┐
                     │   React Frontend (Vite)    │
