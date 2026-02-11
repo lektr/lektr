@@ -16,13 +16,19 @@
     <a href="https://github.com/lektr/lektr/issues">
       <img src="https://img.shields.io/github/issues/lektr/lektr?style=for-the-badge&logo=github&color=f43f5e" alt="GitHub issues" />
     </a>
+    <a href="https://github.com/lektr/lektr/releases">
+      <img src="https://img.shields.io/github/v/release/lektr/lektr?style=for-the-badge&color=f43f5e" alt="Latest release" />
+    </a>
   </p>
+
+  <!-- TODO: Replace with actual screenshot -->
+  <!-- <img src="docs/images/hero-screenshot.png" alt="Lektr Dashboard" width="800" /> -->
 </div>
 
 > [!IMPORTANT]
 > **Lektr is currently in early development.**
 >
-> We are actively building the foundation and things might change rapidly, expect bugs and errors for now. We welcome start contributors and feedback! Please check our [Issues](https://github.com/lektr/lektr/issues) to see what we're working on.
+> We are actively building the foundation and things might change rapidly — expect bugs and rough edges for now. We welcome early contributors and feedback! Please check our [Issues](https://github.com/lektr/lektr/issues) to see what we're working on.
 
 ---
 
@@ -53,6 +59,7 @@ Bring all your reading notes into one place. Lektr supports:
 - **KOReader** (metadata JSON export via plugin)
 - **Readwise** (CSV export)
 - **Browser Extension** (Save web highlights)
+- **Mobile App** (Share text directly from any app)
 - **Manual Entry**
 
 ### 2. Review & Retain
@@ -62,13 +69,11 @@ Lektr gives you two powerful ways to internalize knowledge:
 - **Frictionless Book Study**: Dive into a specific book without setup. Lektr automatically turns your raw highlights into "Virtual Flashcards" for immediate review.
 - **Spaced Repetition (SRS)**: For long-term retention, add flashcards to decks. The FSRS algorithm schedules reviews exactly when you're about to forget them, ensuring efficient, lifetime memory.
 
-### 3. Retain & Apply
-
-Build a true "Second Brain."
+### 3. Organize & Search
 
 - **Semantic Search**: Find concepts even if you don't remember the exact words.
 - **Tagging**: Organize ideas your way.
-- **Export**: Send your retention deck to **Obsidian**, **Notion**, or **Markdown**.
+- **Auto-enrichment**: Automatic cover art and metadata via Hardcover and Open Library.
 
 ---
 
@@ -84,15 +89,61 @@ Don't want to manage decks? No problem. **Virtual Flashcards** let you study raw
 
 ### Escape the Subscription Trap
 
-Unlike other tools that charge monthly fees for your own data, Lektr is:
+Unlike other tools that charge monthly fees for your own data, Lektr can be deployed to your own hardware for free, self-hosted, and open source instance.
 
-- **100% Free & Open Source (Apache 2.0)**
-- **Self-Hosted** (Docker)
-- **Local-First** (Privacy focused)
+### How Lektr Compares
 
-### Beautifully Organized
+| Feature               |   Lektr   | Readwise |   Anki    |
+| --------------------- | :-------: | :------: | :-------: |
+| Self-hosted           |    ✅     |    ❌    |    ✅     |
+| Kindle sync           |    ✅     |    ✅    |    ❌     |
+| Spaced repetition     | ✅ (FSRS) |    ❌    | ✅ (SM-2) |
+| Highlight aggregation |    ✅     |    ✅    |    ❌     |
+| Browser extension     |    ✅     |    ✅    |    ❌     |
+| Semantic search       |    ✅     |    ❌    |    ❌     |
+| Free & open source    |    ✅     |    ❌    |    ✅     |
+| Runs on Raspberry Pi  |    ✅     |    ❌    |    ❌     |
 
-Automatic cover art and metadata enrichment via Hardcover and Open Library keep your library looking pristine.
+---
+
+## 📱 Supported Platforms
+
+| Platform                                 | Status                |
+| ---------------------------------------- | --------------------- |
+| **Web App** (Docker)                     | ✅ Available          |
+| **Android** (React Native)               | ✅ Available          |
+| **iOS** (React Native)                   | ✅ Available          |
+| **Browser Extension** (Chrome / Firefox) | ✅ Available          |
+| **Docker** (AMD64 + ARM64)               | ✅ Raspberry Pi ready |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐     ┌──────────────────────────┐     ┌────────────┐
+│  Mobile App │────▶│       Lektr API           │◀────│  Browser   │
+│ (React      │     │  (Hono + Drizzle ORM)     │     │ Extension  │
+│  Native)    │     └────────────┬───────────────┘     └────────────┘
+└─────────────┘                  │
+                    ┌────────────┴───────────────┐
+                    │     PostgreSQL Database     │
+                    └────────────────────────────┘
+                    ┌────────────────────────────┐
+                    │   React Frontend (Vite)    │
+                    └────────────────────────────┘
+```
+
+**Tech Stack:**
+
+- **API**: Hono (TypeScript), Drizzle ORM, OpenAPI
+- **Frontend**: React 19, Vite, Vanilla CSS
+- **Mobile**: React Native (Expo), WatermelonDB offline-first sync
+- **Database**: PostgreSQL
+- **Search**: Local ONNX embeddings (ARM64-compatible, no cloud APIs)
+- **Containerization**: Docker (multi-arch: AMD64 + ARM64)
+
+---
 
 ## 🚀 Quick Start with Docker
 
@@ -165,30 +216,44 @@ docker compose pull
 docker compose up -d
 ```
 
-## 🤝 Support the Project
-
-If you love Lektr and want to support its development, consider donating via Open Collective! Your support helps cover server costs and fuels new feature development.
-
-<a href="https://opencollective.com/lektr">
-  <img src="https://opencollective.com/webpack/donate/button@2x.png?color=blue" width=300 alt="Donate to Lektr" />
-</a>
-
-## ⭐ Star the Project
-
-If you find Lektr useful, please give it a star on GitHub! It helps more people discover the project.
-
-[![Star on GitHub](https://img.shields.io/github/stars/lektr/lektr?style=social)](https://github.com/lektr/lektr)
+---
 
 ## 🛠️ Development
 
 To run Lektr locally for development:
 
 ```bash
+# Clone the repository
+git clone https://github.com/lektr/lektr.git
+cd lektr
+
 # Install dependencies
 npm install
 
 # Start development server
 docker compose -f docker-compose.dev.yml up
+```
+
+See the [Contributing Guide](CONTRIBUTING.md) for development setup details, coding standards, and how to submit pull requests.
+
+## 🤝 Contributing
+
+We welcome contributions of all kinds — bug reports, feature requests, documentation improvements, and code changes.
+
+1. **Find an issue** — Check [open issues](https://github.com/lektr/lektr/issues) or create a new one
+2. **Fork & branch** — Create a feature branch from `main`
+3. **Make your changes** — Follow existing code style and conventions
+4. **Submit a PR** — Reference the issue number in your pull request
+
+---
+
+## 🔐 Security
+
+For production deployments, always set `JWT_SECRET` to a strong, random value:
+
+```bash
+# Generate a secure secret
+openssl rand -base64 32
 ```
 
 ## 📊 Telemetry
@@ -200,20 +265,21 @@ Lektr collects **anonymous usage statistics** (e.g., feature usage counts, libra
 - Via UI: Go to **Admin Settings** → Toggle "Telemetry" off
 - Via Environment: Set `POSTHOG_API_KEY=disabled` in your `.env` file
 
-## 🔐 Security
+---
 
-For production deployments, always set `JWT_SECRET` to a strong, random value:
+## 🤝 Support the Project
 
-```bash
-# Generate a secure secret
-openssl rand -base64 32
-```
+If you love Lektr and want to support its development, consider donating via Open Collective! Your support helps cover server costs and fuels new feature development.
 
-Add it to your `.env`:
+<a href="https://opencollective.com/lektr">
+  <img src="https://opencollective.com/lektr/donate/button@2x.png?color=blue" width=300 alt="Donate to Lektr" />
+</a>
 
-```bash
-JWT_SECRET=your-generated-secret-here
-```
+## ⭐ Star the Project
+
+If you find Lektr useful, please give it a star on GitHub! It helps more people discover the project.
+
+[![Star on GitHub](https://img.shields.io/github/stars/lektr/lektr?style=social)](https://github.com/lektr/lektr)
 
 ## 📄 License
 
