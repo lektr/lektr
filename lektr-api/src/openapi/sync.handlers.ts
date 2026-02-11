@@ -154,6 +154,8 @@ syncOpenAPI.openapi(
       book_id: h.bookId,
       content: h.content,
       note: h.note,
+      chapter: h.chapter,
+      page_number: h.page,
       created_at: toTimestamp(h.createdAt),
       updated_at: toTimestamp(h.syncedAt || h.createdAt),
     });
@@ -272,6 +274,8 @@ syncOpenAPI.openapi(
              bookId: highlight.book_id,
              content: highlight.content,
              note: highlight.note,
+             chapter: highlight.chapter,
+             page: highlight.page_number,
              createdAt: new Date(highlight.created_at),
              syncedAt: new Date(highlight.updated_at),
            }).onConflictDoNothing();

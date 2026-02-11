@@ -259,7 +259,7 @@ booksOpenAPI.openapi(updateHighlightRoute, async (c) => {
   }
   if (note !== undefined) updateData.note = note;
 
-  await db.update(highlights).set(updateData).where(eq(highlights.id, highlightId));
+  await db.update(highlights).set({ ...updateData, syncedAt: new Date() }).where(eq(highlights.id, highlightId));
 
   return c.json({ success: true, highlightId }, 200);
 });
