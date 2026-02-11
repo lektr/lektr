@@ -284,6 +284,8 @@ syncOpenAPI.openapi(
            await tx.update(highlights).set({
              content: highlight.content,
              note: highlight.note,
+             chapter: highlight.chapter,
+             page: highlight.page_number,
              syncedAt: new Date(Date.now()),
            }).where(and(eq(highlights.id, highlight.id), eq(highlights.userId, user.userId)));
         }
