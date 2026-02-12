@@ -39,7 +39,7 @@ booksOpenAPI.openapi(listBooksRoute, async (c) => {
       createdAt: booksTable.createdAt,
     })
     .from(booksTable)
-    .where(eq(booksTable.userId, user.userId));
+    .where(and(eq(booksTable.userId, user.userId), isNull(booksTable.deletedAt)));
 
   const booksWithCounts = await Promise.all(
     userBooks.map(async (book) => {
@@ -279,13 +279,16 @@ booksOpenAPI.openapi(deleteBookRoute, async (c) => {
     return c.json({ error: "Not authorized" }, 403);
   }
 
-  // Soft-delete all highlights in the book (set deletedAt)
+  // Soft-delete the book and all its highlights
   const now = new Date();
+  await db.update(booksTable)
+    .set({ deletedAt: now })
+    .where(eq(booksTable.id, bookId));
   await db.update(highlights)
     .set({ deletedAt: now })
     .where(eq(highlights.bookId, bookId));
 
-  return c.json({ success: true, message: "Book highlights moved to trash" }, 200);
+  return c.json({ success: true, message: "Book and highlights moved to trash" }, 200);
 });
 
 
@@ -376,8 +379,17 @@ booksOpenAPI.openapi(restoreHighlightRoute, async (c) => {
     return c.json({ error: "Not authorized" }, 403);
   }
 
-  // Restore: set deletedAt to null
-  await db.update(highlights).set({ deletedAt: null }).where(eq(highlights.id, highlightId));
+  // Restore: clear deletedAt and bump syncedAt so sync picks it up
+  const now = new Date();
+  await db.update(highlights).set({ deletedAt: null, syncedAt: now }).where(eq(highlights.id, highlightId));
+
+  // Also restore the parent book if it was soft-deleted, and bump updatedAt for sync
+  if (book.deletedAt) {
+    await db.update(booksTable).set({ deletedAt: null, updatedAt: now }).where(eq(booksTable.id, book.id));
+  } else {
+    // Even if book wasn't deleted, bump updatedAt so mobile knows to re-fetch
+    await db.update(booksTable).set({ updatedAt: now }).where(eq(booksTable.id, book.id));
+  }
 
   return c.json({ success: true, message: "Highlight restored" }, 200);
 });

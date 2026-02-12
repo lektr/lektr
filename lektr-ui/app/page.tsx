@@ -1,14 +1,123 @@
 "use client";
 
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/api";
+import { getCurrentUser, getBooks, getReviewQueue } from "@/lib/api";
+import { RediscoveryFeed } from "@/components/rediscovery-feed";
+import {
+  BookOpen,
+  Upload,
+  GraduationCap,
+  Library,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function Dashboard() {
+  const { data: booksData } = useQuery({
+    queryKey: ["books"],
+    queryFn: getBooks,
+  });
+
+  const { data: reviewData } = useQuery({
+    queryKey: ["review"],
+    queryFn: getReviewQueue,
+  });
+
+  const { data: authData } = useQuery({
+    queryKey: ["auth"],
+    queryFn: getCurrentUser,
+  });
+
+  const totalBooks = booksData?.books?.filter((b) => b.highlightCount > 0).length ?? 0;
+  const totalHighlights =
+    booksData?.books?.reduce((sum, b) => sum + b.highlightCount, 0) ?? 0;
+  const dueCount = reviewData?.total ?? 0;
+  const userEmail = authData?.user?.email ?? "";
+  const displayName = userEmail.split("@")[0];
+
+  return (
+    <div className="container py-8 min-h-screen animate-fade-in">
+      {/* Greeting */}
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          {getGreeting()}, {displayName} 👋
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Here&apos;s a glimpse into your reading knowledge
+        </p>
+      </div>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-10">
+        <Link
+          href="/library"
+          className="card card-interactive p-4 flex flex-col items-center text-center group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+            <Library className="w-5 h-5 text-primary" />
+          </div>
+          <span className="text-2xl font-bold">{totalBooks}</span>
+          <span className="text-xs text-muted-foreground">Books</span>
+        </Link>
+
+        <Link
+          href="/library"
+          className="card card-interactive p-4 flex flex-col items-center text-center group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-2 group-hover:bg-accent/20 transition-colors">
+            <Sparkles className="w-5 h-5 text-accent" />
+          </div>
+          <span className="text-2xl font-bold">{totalHighlights}</span>
+          <span className="text-xs text-muted-foreground">Highlights</span>
+        </Link>
+
+        <Link
+          href="/decks"
+          className="card card-interactive p-4 flex flex-col items-center text-center group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center mb-2 group-hover:bg-warning/20 transition-colors">
+            <GraduationCap className="w-5 h-5 text-warning" />
+          </div>
+          <span className="text-2xl font-bold">{dueCount}</span>
+          <span className="text-xs text-muted-foreground">Due for review</span>
+        </Link>
+      </div>
+
+      {/* Rediscovery Feed */}
+      <RediscoveryFeed count={3} />
+
+      {/* Quick actions */}
+      <div className="mt-10 flex flex-wrap gap-3">
+        <Link href="/library" className="btn btn-secondary text-sm gap-2">
+          <BookOpen className="w-4 h-4" />
+          Go to Library
+          <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+        </Link>
+        <Link href="/sync" className="btn btn-secondary text-sm gap-2">
+          <Upload className="w-4 h-4" />
+          Sync Highlights
+        </Link>
+        {dueCount > 0 && (
+          <Link href="/decks" className="btn btn-primary text-sm gap-2">
+            <GraduationCap className="w-4 h-4" />
+            Review {dueCount} Due
+            <ArrowRight className="w-3.5 h-3.5 opacity-80" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
-  const router = useRouter();
-
   const { data: authData, isLoading } = useQuery({
     queryKey: ["auth"],
     queryFn: getCurrentUser,
@@ -16,15 +125,7 @@ export default function Home() {
 
   const isLoggedIn = !!authData?.user;
 
-  // Redirect logged-in users to library
-  useEffect(() => {
-    if (!isLoading && isLoggedIn) {
-      router.push("/library");
-    }
-  }, [isLoading, isLoggedIn, router]);
-
-  // Show loading or redirect for logged-in users
-  if (isLoading || isLoggedIn) {
+  if (isLoading) {
     return (
       <div className="container py-20">
         <div className="text-center text-muted-foreground">Loading...</div>
@@ -32,6 +133,11 @@ export default function Home() {
     );
   }
 
+  if (isLoggedIn) {
+    return <Dashboard />;
+  }
+
+  // Logged-out: marketing landing page
   return (
     <div className="container py-16 sm:py-24">
       {/* Hero Section */}
@@ -127,8 +233,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-
     </div>
   );
 }

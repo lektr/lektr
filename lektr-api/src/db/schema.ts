@@ -66,6 +66,10 @@ export const users = pgTable("users", {
   resetToken: text("reset_token"),
   resetTokenExpires: timestamp("reset_token_expires", { withTimezone: true }),
   digestEnabled: text("digest_enabled").default("true"), // 'true' or 'false'
+  digestFrequency: text("digest_frequency").default("daily"), // 'daily', 'weekdays', 'weekly'
+  digestHour: integer("digest_hour").default(8), // 0-23, hour in user's timezone
+  digestTimezone: text("digest_timezone").default("UTC"), // IANA timezone
+  lastDigestSentAt: timestamp("last_digest_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

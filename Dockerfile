@@ -48,7 +48,7 @@ FROM node:25-slim AS final
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     nginx \
     supervisor \
     curl \
@@ -87,9 +87,7 @@ RUN npm ci --omit=dev
 # Reinstall sharp with platform-specific binaries for target arch
 RUN npm install --include=optional sharp
 
-# Reinstall onnxruntime-node with platform-specific binaries for embedding generation
-# This is required for arm64 since the default install doesn't include arm64 binaries
-RUN npm install --include=optional onnxruntime-node
+# Note: onnxruntime-node is installed at the correct version via npm overrides in package.json
 
 # Create HuggingFace cache directory for embedding models
 RUN mkdir -p /app/.cache/huggingface

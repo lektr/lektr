@@ -53,7 +53,7 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
       SELECT h.id, h.content, h.chapter, h.page, h.book_id, b.title as book_title, b.author as book_author, b.cover_image_url,
         1 - (h.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as semantic_score
       FROM highlights h JOIN books b ON h.book_id = b.id
-      WHERE h.user_id = ${user.userId} AND h.embedding IS NOT NULL AND h.deleted_at IS NULL ${tagFilterClause}
+      WHERE h.user_id = ${user.userId} AND h.embedding IS NOT NULL AND h.deleted_at IS NULL AND b.deleted_at IS NULL ${tagFilterClause}
       ORDER BY h.embedding <=> ${JSON.stringify(queryEmbedding)}::vector
       LIMIT ${fetchLimit}
     `),
@@ -67,6 +67,7 @@ searchOpenAPI.openapi(searchRoute, async (c) => {
       FROM highlights h JOIN books b ON h.book_id = b.id
       WHERE h.user_id = ${user.userId}
         AND h.deleted_at IS NULL
+        AND b.deleted_at IS NULL
         AND to_tsvector('english', coalesce(h.content, '') || ' ' || coalesce(b.title, '') || ' ' || coalesce(b.author, ''))
             @@ plainto_tsquery('english', ${query})
         ${tagFilterClause}

@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { changePassword, changeEmail, getCurrentUser } from "@/lib/api";
+import { changePassword, changeEmail, getCurrentUser, getDigestPreferences, updateDigestPreferences, type DigestPreferences } from "@/lib/api";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/auth-guard";
 import { PageHeader } from "@/components/page-header";
-import { ChevronLeft, Eye, EyeOff, Lock, Shield, Mail } from "lucide-react";
+import { ChevronLeft, Eye, EyeOff, Lock, Shield, Mail, Bell, Clock, Globe, Calendar } from "lucide-react";
+import { Switch } from "@/components/switch";
 import Link from "next/link";
+
+const TIMEZONE_OPTIONS = [
+  "UTC", "US/Eastern", "US/Central", "US/Mountain", "US/Pacific",
+  "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Moscow",
+  "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Asia/Dubai",
+  "Australia/Sydney", "Pacific/Auckland",
+  "America/Sao_Paulo", "America/Mexico_City", "Africa/Cairo",
+];
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  daily: "Every day",
+  weekdays: "Weekdays only",
+  weekly: "Weekly (Mondays)",
+};
 
 export default function AccountSettingsPage() {
   const queryClient = useQueryClient();
@@ -349,7 +364,185 @@ export default function AccountSettingsPage() {
             </div>
           </form>
         </div>
+
+        {/* Daily Digest Preferences Card */}
+        <DigestPreferencesCard />
       </div>
     </AuthGuard>
+  );
+}
+
+function DigestPreferencesCard() {
+  const { data: prefs, isLoading } = useQuery({
+    queryKey: ["digestPreferences"],
+    queryFn: getDigestPreferences,
+  });
+
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [digestFrequency, setDigestFrequency] = useState<"daily" | "weekdays" | "weekly">("daily");
+  const [digestHour, setDigestHour] = useState(8);
+  const [digestTimezone, setDigestTimezone] = useState("UTC");
+
+  // Sync fetched prefs into local state
+  useEffect(() => {
+    if (prefs) {
+      setDigestEnabled(prefs.digestEnabled);
+      setDigestFrequency(prefs.digestFrequency);
+      setDigestHour(prefs.digestHour);
+      setDigestTimezone(prefs.digestTimezone);
+    }
+  }, [prefs]);
+
+  const updateMutation = useMutation({
+    mutationFn: (patch: Partial<DigestPreferences>) => updateDigestPreferences(patch),
+    onSuccess: () => toast.success("Digest preferences saved"),
+    onError: (err: Error) => toast.error(err.message || "Failed to save preferences"),
+  });
+
+  const handleToggle = (next: boolean) => {
+    setDigestEnabled(next);
+    updateMutation.mutate({ digestEnabled: next });
+  };
+
+  const handleFrequencyChange = (value: "daily" | "weekdays" | "weekly") => {
+    setDigestFrequency(value);
+    updateMutation.mutate({ digestFrequency: value });
+  };
+
+  const handleHourChange = (value: number) => {
+    setDigestHour(value);
+    updateMutation.mutate({ digestHour: value });
+  };
+
+  const handleTimezoneChange = (value: string) => {
+    setDigestTimezone(value);
+    updateMutation.mutate({ digestTimezone: value });
+  };
+
+  const formatHour = (h: number) => {
+    if (h === 0) return "12:00 AM";
+    if (h === 12) return "12:00 PM";
+    return h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="mt-6 rounded-xl border border-border/50 bg-card p-6 shadow-sm animate-pulse">
+        <div className="h-6 w-48 bg-muted/50 rounded mb-4" />
+        <div className="h-4 w-64 bg-muted/50 rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-border/50 bg-card p-6 shadow-sm">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2.5 rounded-full bg-accent/10">
+          <Bell className="w-5 h-5 text-accent" />
+        </div>
+        <div className="flex-1">
+          <h2 className="font-semibold text-lg">Daily Digest</h2>
+          <p className="text-sm text-muted-foreground">
+            Receive highlights for spaced repetition review via email
+          </p>
+        </div>
+
+        {/* Toggle */}
+        <Switch
+          checked={digestEnabled}
+          onCheckedChange={handleToggle}
+          disabled={updateMutation.isPending}
+        />
+      </div>
+
+      {digestEnabled && (
+        <div className="space-y-5 animate-in fade-in duration-200">
+          {/* Frequency */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              Frequency
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {(["daily", "weekdays", "weekly"] as const).map((freq) => (
+                <button
+                  key={freq}
+                  onClick={() => handleFrequencyChange(freq)}
+                  disabled={updateMutation.isPending}
+                  className={`px-4 py-2 text-sm font-medium rounded-full transition-all cursor-pointer ${
+                    digestFrequency === freq
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {FREQUENCY_LABELS[freq]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Delivery Time */}
+          <div className="space-y-2">
+            <label htmlFor="digestHour" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              Delivery Time
+            </label>
+            <div className="relative">
+              <select
+                id="digestHour"
+                value={digestHour}
+                onChange={(e) => handleHourChange(Number(e.target.value))}
+                disabled={updateMutation.isPending}
+                className="w-full h-auto px-4 py-3 pr-10 bg-muted/50 border-none text-sm leading-normal focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ borderRadius: '12px' }}
+              >
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {formatHour(i)}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                ▼
+              </div>
+            </div>
+          </div>
+
+          {/* Timezone */}
+          <div className="space-y-2">
+            <label htmlFor="digestTimezone" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              Timezone
+            </label>
+            <div className="relative">
+              <select
+                id="digestTimezone"
+                value={digestTimezone}
+                onChange={(e) => handleTimezoneChange(e.target.value)}
+                disabled={updateMutation.isPending}
+                className="w-full h-auto px-4 py-3 pr-10 bg-muted/50 border-none text-sm leading-normal focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ borderRadius: '12px' }}
+              >
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                ▼
+              </div>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            📬 You&apos;ll receive your digest <strong className="text-foreground">{FREQUENCY_LABELS[digestFrequency].toLowerCase()}</strong> at{" "}
+            <strong className="text-foreground">{formatHour(digestHour)}</strong>{" "}
+            <span className="text-xs">({digestTimezone.replace(/_/g, " ")})</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

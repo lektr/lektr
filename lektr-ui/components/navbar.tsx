@@ -110,6 +110,7 @@ export function Navbar() {
               {user && (
                 <div className="flex items-center gap-1 p-1 rounded-full border border-border/50 bg-background/50 shadow-sm">
                   <NavLink href="/library">Library</NavLink>
+                  <NavLink href="/rediscover">Rediscover</NavLink>
                   <NavLink href="/decks">Decks</NavLink>
                   <NavLink href="/tags">Tags</NavLink>
                   <NavLink href="/sync">Sync</NavLink>
@@ -195,6 +196,13 @@ export function Navbar() {
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
               >
                  <span className="font-medium">Library</span>
+              </Link>
+              <Link
+                href="/rediscover"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+              >
+                 <span className="font-medium">Rediscover</span>
               </Link>
               <Link
                 href="/decks"

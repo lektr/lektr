@@ -20,6 +20,8 @@ import { settingsOpenAPI } from "./openapi/settings.handlers";
 import { exportOpenAPI } from "./openapi/export.handlers";
 import { adminOpenAPI } from "./openapi/admin.handlers";
 import { syncOpenAPI } from "./openapi/sync.handlers";
+import { digestOpenAPI } from "./openapi/digest.handlers";
+import { rediscoveryOpenAPI } from "./openapi/rediscovery.handlers";
 
 
 import { runMigrations } from "./db";
@@ -88,6 +90,8 @@ app.route("/api/v1/settings", settingsOpenAPI);
 app.route("/api/v1/export", exportOpenAPI);
 app.route("/api/v1/admin", adminOpenAPI);
 app.route("/api/v1/sync", syncOpenAPI);
+app.route("/api/v1/digest", digestOpenAPI);
+app.route("/api/v1/rediscovery", rediscoveryOpenAPI);
 
 // OpenAPI spec endpoint
 app.doc("/openapi.json", {

@@ -1199,6 +1199,45 @@ export async function triggerDigest(): Promise<{ success: boolean; message: stri
   return response.json();
 }
 
+// Digest Preferences API
+export interface DigestPreferences {
+  digestEnabled: boolean;
+  digestFrequency: "daily" | "weekdays" | "weekly";
+  digestHour: number;
+  digestTimezone: string;
+}
+
+export async function getDigestPreferences(): Promise<DigestPreferences> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/digest`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get digest preferences");
+  }
+
+  return response.json();
+}
+
+export async function updateDigestPreferences(
+  prefs: Partial<DigestPreferences>
+): Promise<DigestPreferences> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/digest`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(prefs),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update digest preferences");
+  }
+
+  return response.json();
+}
+
 // Book Study API
 export interface BookStudyStats {
   dueCount: number;
@@ -1233,6 +1272,37 @@ export async function getBookStudySession(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to start book study session");
+  }
+
+  return response.json();
+}
+
+// Rediscovery API
+export interface RediscoveryHighlight {
+  id: string;
+  content: string;
+  note: string | null;
+  chapter: string | null;
+  page: number | null;
+  highlightedAt: string | null;
+  bookId: string;
+  bookTitle: string;
+  bookAuthor: string | null;
+  coverImageUrl: string | null;
+  tags: { id: string; name: string; color: string | null }[];
+}
+
+export async function getRediscoveryHighlights(
+  count: number = 5
+): Promise<{ highlights: RediscoveryHighlight[] }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/rediscovery?count=${count}`,
+    { credentials: "include" }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch rediscovery highlights");
   }
 
   return response.json();

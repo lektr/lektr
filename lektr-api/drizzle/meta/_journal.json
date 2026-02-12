@@ -85,6 +85,13 @@
       "when": 1770784380000,
       "tag": "0011_add_lektr_source_type",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1770876000000,
+      "tag": "0012_add_digest_preferences",
+      "breakpoints": true
     }
   ]
 }
