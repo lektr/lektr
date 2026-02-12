@@ -373,6 +373,7 @@ export default function AccountSettingsPage() {
 }
 
 function DigestPreferencesCard() {
+  const queryClient = useQueryClient();
   const { data: prefs, isLoading } = useQuery({
     queryKey: ["digestPreferences"],
     queryFn: getDigestPreferences,
@@ -395,7 +396,10 @@ function DigestPreferencesCard() {
 
   const updateMutation = useMutation({
     mutationFn: (patch: Partial<DigestPreferences>) => updateDigestPreferences(patch),
-    onSuccess: () => toast.success("Digest preferences saved"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["digestPreferences"] });
+      toast.success("Digest preferences saved");
+    },
     onError: (err: Error) => toast.error(err.message || "Failed to save preferences"),
   });
 
