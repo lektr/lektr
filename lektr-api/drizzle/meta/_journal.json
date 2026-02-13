@@ -92,6 +92,20 @@
       "when": 1770876000000,
       "tag": "0012_add_digest_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1770962298000,
+      "tag": "0013_add_soft_delete_decks_flashcards",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1771034930000,
+      "tag": "0014_add_sync_columns_to_tags",
+      "breakpoints": true
     }
   ]
 }

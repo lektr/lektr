@@ -1,8 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { authMiddleware } from "../middleware/auth";
 import { db } from "../db";
-import { books, highlights, decks, flashcards } from "../db/schema";
-import { eq, gt, and, sql, isNull } from "drizzle-orm";
+import { books, highlights, decks, flashcards, tags, highlightTags, bookTags } from "../db/schema";
+import { eq, gt, and, sql, isNull, isNotNull } from "drizzle-orm";
 import { SyncResponse } from "../models/sync";
 export const syncOpenAPI = new OpenAPIHono();
 // All routes require auth
@@ -24,6 +24,9 @@ const SyncPushSchema = z.object({
     highlights: emptyTableChanges,
     decks: emptyTableChanges.optional(),
     flashcards: emptyTableChanges.optional(),
+    tags: emptyTableChanges.optional(),
+    highlight_tags: emptyTableChanges.optional(),
+    book_tags: emptyTableChanges.optional(),
   }),
   last_pulled_at: z.number().nullable(),
 });
@@ -52,6 +55,7 @@ syncOpenAPI.openapi(
     },
   }),
   async (c) => {
+    try {
     const user = c.get("user");
     const { last_pulled_at } = c.req.query();
     let lastPulledDate: Date | null = null;
@@ -111,34 +115,113 @@ syncOpenAPI.openapi(
     // === Decks ===
     let decksCreated: any[] = [];
     let decksUpdated: any[] = [];
+    let decksDeleted: string[] = [];
     if (!lastPulledDate) {
-      decksCreated = await db.select().from(decks).where(eq(decks.userId, user.userId));
+      decksCreated = await db.select().from(decks).where(and(eq(decks.userId, user.userId), isNull(decks.deletedAt)));
     } else {
       decksCreated = await db.select().from(decks).where(and(
         eq(decks.userId, user.userId),
+        isNull(decks.deletedAt),
         gt(decks.createdAt, lastPulledDate)
       ));
       decksUpdated = await db.select().from(decks).where(and(
         eq(decks.userId, user.userId),
+        isNull(decks.deletedAt),
         gt(decks.updatedAt, lastPulledDate),
         sql`${decks.createdAt} <= ${lastPulledDate.toISOString()}`
       ));
+      decksDeleted = (await db.select({ id: decks.id }).from(decks).where(and(
+        eq(decks.userId, user.userId),
+        isNotNull(decks.deletedAt),
+        gt(decks.deletedAt, lastPulledDate)
+      ))).map(d => d.id);
     }
     // === Flashcards ===
     let flashcardsCreated: any[] = [];
     let flashcardsUpdated: any[] = [];
+    let flashcardsDeleted: string[] = [];
     if (!lastPulledDate) {
-      flashcardsCreated = await db.select().from(flashcards).where(eq(flashcards.userId, user.userId));
+      flashcardsCreated = await db.select().from(flashcards).where(and(eq(flashcards.userId, user.userId), isNull(flashcards.deletedAt)));
     } else {
       flashcardsCreated = await db.select().from(flashcards).where(and(
         eq(flashcards.userId, user.userId),
+        isNull(flashcards.deletedAt),
         gt(flashcards.createdAt, lastPulledDate)
       ));
       flashcardsUpdated = await db.select().from(flashcards).where(and(
         eq(flashcards.userId, user.userId),
+        isNull(flashcards.deletedAt),
         gt(flashcards.updatedAt, lastPulledDate),
         sql`${flashcards.createdAt} <= ${lastPulledDate.toISOString()}`
       ));
+      flashcardsDeleted = (await db.select({ id: flashcards.id }).from(flashcards).where(and(
+        eq(flashcards.userId, user.userId),
+        isNotNull(flashcards.deletedAt),
+        gt(flashcards.deletedAt, lastPulledDate)
+      ))).map(f => f.id);
+    }
+    // === Tags ===
+    let tagsCreated: any[] = [];
+    let tagsUpdated: any[] = [];
+    let tagsDeleted: string[] = [];
+    if (!lastPulledDate) {
+      tagsCreated = await db.select().from(tags).where(and(eq(tags.userId, user.userId), isNull(tags.deletedAt)));
+    } else {
+      tagsCreated = await db.select().from(tags).where(and(
+        eq(tags.userId, user.userId),
+        isNull(tags.deletedAt),
+        gt(tags.createdAt, lastPulledDate)
+      ));
+      tagsUpdated = await db.select().from(tags).where(and(
+        eq(tags.userId, user.userId),
+        isNull(tags.deletedAt),
+        gt(tags.updatedAt, lastPulledDate),
+        sql`${tags.createdAt} <= ${lastPulledDate.toISOString()}`
+      ));
+      tagsDeleted = (await db.select({ id: tags.id }).from(tags).where(and(
+        eq(tags.userId, user.userId),
+        isNotNull(tags.deletedAt),
+        gt(tags.deletedAt, lastPulledDate)
+      ))).map(t => t.id);
+    }
+    // === Highlight Tags ===
+    let highlightTagsCreated: any[] = [];
+    let highlightTagsUpdated: any[] = [];
+    let highlightTagsDeleted: string[] = [];
+    // Join through tags to scope by userId
+    if (!lastPulledDate) {
+      highlightTagsCreated = await db.select({ id: highlightTags.id, highlightId: highlightTags.highlightId, tagId: highlightTags.tagId, createdAt: highlightTags.createdAt, updatedAt: highlightTags.updatedAt })
+        .from(highlightTags).innerJoin(tags, eq(highlightTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNull(highlightTags.deletedAt)));
+    } else {
+      highlightTagsCreated = await db.select({ id: highlightTags.id, highlightId: highlightTags.highlightId, tagId: highlightTags.tagId, createdAt: highlightTags.createdAt, updatedAt: highlightTags.updatedAt })
+        .from(highlightTags).innerJoin(tags, eq(highlightTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNull(highlightTags.deletedAt), gt(highlightTags.createdAt, lastPulledDate)));
+      highlightTagsUpdated = await db.select({ id: highlightTags.id, highlightId: highlightTags.highlightId, tagId: highlightTags.tagId, createdAt: highlightTags.createdAt, updatedAt: highlightTags.updatedAt })
+        .from(highlightTags).innerJoin(tags, eq(highlightTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNull(highlightTags.deletedAt), gt(highlightTags.updatedAt, lastPulledDate), sql`${highlightTags.createdAt} <= ${lastPulledDate.toISOString()}`));
+      highlightTagsDeleted = (await db.select({ id: highlightTags.id })
+        .from(highlightTags).innerJoin(tags, eq(highlightTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNotNull(highlightTags.deletedAt), gt(highlightTags.deletedAt, lastPulledDate)))).map(ht => ht.id);
+    }
+    // === Book Tags ===
+    let bookTagsCreated: any[] = [];
+    let bookTagsUpdated: any[] = [];
+    let bookTagsDeleted: string[] = [];
+    if (!lastPulledDate) {
+      bookTagsCreated = await db.select({ id: bookTags.id, bookId: bookTags.bookId, tagId: bookTags.tagId, createdAt: bookTags.createdAt, updatedAt: bookTags.updatedAt })
+        .from(bookTags).innerJoin(tags, eq(bookTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNull(bookTags.deletedAt)));
+    } else {
+      bookTagsCreated = await db.select({ id: bookTags.id, bookId: bookTags.bookId, tagId: bookTags.tagId, createdAt: bookTags.createdAt, updatedAt: bookTags.updatedAt })
+        .from(bookTags).innerJoin(tags, eq(bookTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNull(bookTags.deletedAt), gt(bookTags.createdAt, lastPulledDate)));
+      bookTagsUpdated = await db.select({ id: bookTags.id, bookId: bookTags.bookId, tagId: bookTags.tagId, createdAt: bookTags.createdAt, updatedAt: bookTags.updatedAt })
+        .from(bookTags).innerJoin(tags, eq(bookTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNull(bookTags.deletedAt), gt(bookTags.updatedAt, lastPulledDate), sql`${bookTags.createdAt} <= ${lastPulledDate.toISOString()}`));
+      bookTagsDeleted = (await db.select({ id: bookTags.id })
+        .from(bookTags).innerJoin(tags, eq(bookTags.tagId, tags.id))
+        .where(and(eq(tags.userId, user.userId), isNotNull(bookTags.deletedAt), gt(bookTags.deletedAt, lastPulledDate)))).map(bt => bt.id);
     }
     // Map to WatermelonDB format
     const mapBook = (b: any) => ({
@@ -181,32 +264,72 @@ syncOpenAPI.openapi(
       created_at: toTimestamp(f.createdAt),
       updated_at: toTimestamp(f.updatedAt),
     });
+    const mapTag = (t: any) => ({
+      id: t.id,
+      name: t.name,
+      color: t.color,
+      created_at: toTimestamp(t.createdAt),
+      updated_at: toTimestamp(t.updatedAt),
+    });
+    const mapHighlightTag = (ht: any) => ({
+      id: ht.id,
+      highlight_id: ht.highlightId,
+      tag_id: ht.tagId,
+      created_at: toTimestamp(ht.createdAt),
+      updated_at: toTimestamp(ht.updatedAt),
+    });
+    const mapBookTag = (bt: any) => ({
+      id: bt.id,
+      book_id: bt.bookId,
+      tag_id: bt.tagId,
+      created_at: toTimestamp(bt.createdAt),
+      updated_at: toTimestamp(bt.updatedAt),
+    });
     const response: SyncResponse = {
       changes: {
         books: {
-          created: booksCreated.map(mapBook),
-          updated: booksUpdated.map(mapBook),
+          created: [],
+          updated: [...booksCreated.map(mapBook), ...booksUpdated.map(mapBook)],
           deleted: booksDeleted,
         },
         highlights: {
-          created: highlightsCreated.map(mapHighlight),
-          updated: highlightsUpdated.map(mapHighlight),
+          created: [],
+          updated: [...highlightsCreated.map(mapHighlight), ...highlightsUpdated.map(mapHighlight)],
           deleted: highlightsDeleted,
         },
         decks: {
-          created: decksCreated.map(mapDeck),
-          updated: decksUpdated.map(mapDeck),
-          deleted: [], // No soft delete for decks
+          created: [],
+          updated: [...decksCreated.map(mapDeck), ...decksUpdated.map(mapDeck)],
+          deleted: decksDeleted,
         },
         flashcards: {
-          created: flashcardsCreated.map(mapFlashcard),
-          updated: flashcardsUpdated.map(mapFlashcard),
-          deleted: [], // No soft delete for flashcards
+          created: [],
+          updated: [...flashcardsCreated.map(mapFlashcard), ...flashcardsUpdated.map(mapFlashcard)],
+          deleted: flashcardsDeleted,
+        },
+        tags: {
+          created: [],
+          updated: [...tagsCreated.map(mapTag), ...tagsUpdated.map(mapTag)],
+          deleted: tagsDeleted,
+        },
+        highlight_tags: {
+          created: [],
+          updated: [...highlightTagsCreated.map(mapHighlightTag), ...highlightTagsUpdated.map(mapHighlightTag)],
+          deleted: highlightTagsDeleted,
+        },
+        book_tags: {
+          created: [],
+          updated: [...bookTagsCreated.map(mapBookTag), ...bookTagsUpdated.map(mapBookTag)],
+          deleted: bookTagsDeleted,
         },
       },
       timestamp: Date.now(),
     };
     return c.json(response);
+    } catch (error) {
+      console.error('[sync pull] Error:', error);
+      return c.json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500) as any;
+    }
   }
 );
 // PUSH Endpoint
@@ -234,6 +357,7 @@ syncOpenAPI.openapi(
   async (c) => {
     const user = c.get("user");
     const { changes, last_pulled_at } = await c.req.json();
+    try {
     await db.transaction(async (tx) => {
       // === Books ===
       if (changes.books) {
@@ -312,17 +436,36 @@ syncOpenAPI.openapi(
           }).onConflictDoNothing();
         }
         for (const deck of updated) {
-          await tx.update(decks).set({
-            title: deck.title,
-            description: deck.description,
-            type: deck.type || 'manual',
-            tagLogic: deck.tag_logic,
-            settings: deck.settings ? JSON.parse(deck.settings) : null,
-            updatedAt: new Date(Date.now()),
-          }).where(and(eq(decks.id, deck.id), eq(decks.userId, user.userId)));
+          // Upsert: sendCreatedAsUpdated means new records arrive as 'updated'
+          const exists = await tx.select({ id: decks.id }).from(decks).where(eq(decks.id, deck.id));
+          if (exists.length > 0) {
+            await tx.update(decks).set({
+              title: deck.title,
+              description: deck.description,
+              type: deck.type || 'manual',
+              tagLogic: deck.tag_logic,
+              settings: deck.settings ? JSON.parse(deck.settings) : null,
+              updatedAt: new Date(Date.now()),
+            }).where(and(eq(decks.id, deck.id), eq(decks.userId, user.userId)));
+          } else {
+            await tx.insert(decks).values({
+              id: deck.id,
+              userId: user.userId,
+              title: deck.title,
+              description: deck.description,
+              type: deck.type || 'manual',
+              tagLogic: deck.tag_logic,
+              settings: deck.settings ? JSON.parse(deck.settings) : null,
+              createdAt: new Date(deck.created_at || Date.now()),
+              updatedAt: new Date(Date.now()),
+            }).onConflictDoNothing();
+          }
         }
         for (const id of deleted) {
-          await tx.delete(decks).where(and(eq(decks.id, id), eq(decks.userId, user.userId)));
+          await tx.update(decks).set({
+            deletedAt: new Date(),
+            updatedAt: new Date(),
+          }).where(and(eq(decks.id, id), eq(decks.userId, user.userId)));
         }
       }
       // === Flashcards ===
@@ -344,20 +487,158 @@ syncOpenAPI.openapi(
           }).onConflictDoNothing();
         }
         for (const card of updated) {
-          await tx.update(flashcards).set({
-            front: card.front,
-            back: card.back,
-            cardType: card.card_type || 'basic',
-            fsrsData: card.fsrs_data ? JSON.parse(card.fsrs_data) : null,
-            dueAt: card.due_at ? new Date(card.due_at) : null,
-            updatedAt: new Date(Date.now()),
-          }).where(and(eq(flashcards.id, card.id), eq(flashcards.userId, user.userId)));
+          // Upsert: sendCreatedAsUpdated means new records arrive as 'updated'
+          const exists = await tx.select({ id: flashcards.id }).from(flashcards).where(eq(flashcards.id, card.id));
+          if (exists.length > 0) {
+            await tx.update(flashcards).set({
+              front: card.front,
+              back: card.back,
+              cardType: card.card_type || 'basic',
+              fsrsData: card.fsrs_data ? JSON.parse(card.fsrs_data) : null,
+              dueAt: card.due_at ? new Date(card.due_at) : null,
+              updatedAt: new Date(Date.now()),
+            }).where(and(eq(flashcards.id, card.id), eq(flashcards.userId, user.userId)));
+          } else {
+            await tx.insert(flashcards).values({
+              id: card.id,
+              deckId: card.deck_id,
+              userId: user.userId,
+              highlightId: card.highlight_id || null,
+              front: card.front,
+              back: card.back,
+              cardType: card.card_type || 'basic',
+              fsrsData: card.fsrs_data ? JSON.parse(card.fsrs_data) : null,
+              dueAt: card.due_at ? new Date(card.due_at) : null,
+              createdAt: new Date(card.created_at || Date.now()),
+              updatedAt: new Date(Date.now()),
+            }).onConflictDoNothing();
+          }
         }
         for (const id of deleted) {
-          await tx.delete(flashcards).where(and(eq(flashcards.id, id), eq(flashcards.userId, user.userId)));
+          await tx.update(flashcards).set({
+            deletedAt: new Date(),
+            updatedAt: new Date(),
+          }).where(and(eq(flashcards.id, id), eq(flashcards.userId, user.userId)));
+        }
+      }
+      // === Tags ===
+      if (changes.tags) {
+        const { created, updated, deleted } = changes.tags;
+        for (const tag of created) {
+          await tx.insert(tags).values({
+            id: tag.id,
+            userId: user.userId,
+            name: tag.name,
+            color: tag.color,
+            createdAt: new Date(tag.created_at),
+            updatedAt: new Date(tag.updated_at),
+          }).onConflictDoNothing();
+        }
+        for (const tag of updated) {
+          const exists = await tx.select({ id: tags.id }).from(tags).where(eq(tags.id, tag.id));
+          if (exists.length > 0) {
+            await tx.update(tags).set({
+              name: tag.name,
+              color: tag.color,
+              updatedAt: new Date(Date.now()),
+            }).where(and(eq(tags.id, tag.id), eq(tags.userId, user.userId)));
+          } else {
+            await tx.insert(tags).values({
+              id: tag.id,
+              userId: user.userId,
+              name: tag.name,
+              color: tag.color,
+              createdAt: new Date(tag.created_at || Date.now()),
+              updatedAt: new Date(Date.now()),
+            }).onConflictDoNothing();
+          }
+        }
+        for (const id of deleted) {
+          await tx.update(tags).set({
+            deletedAt: new Date(),
+            updatedAt: new Date(),
+          }).where(and(eq(tags.id, id), eq(tags.userId, user.userId)));
+        }
+      }
+      // === Highlight Tags ===
+      if (changes.highlight_tags) {
+        const { created, updated, deleted } = changes.highlight_tags;
+        for (const ht of created) {
+          await tx.insert(highlightTags).values({
+            id: ht.id,
+            highlightId: ht.highlight_id,
+            tagId: ht.tag_id,
+            createdAt: new Date(ht.created_at),
+            updatedAt: new Date(ht.updated_at),
+          }).onConflictDoNothing();
+        }
+        for (const ht of updated) {
+          const exists = await tx.select({ id: highlightTags.id }).from(highlightTags).where(eq(highlightTags.id, ht.id));
+          if (exists.length > 0) {
+            await tx.update(highlightTags).set({
+              highlightId: ht.highlight_id,
+              tagId: ht.tag_id,
+              updatedAt: new Date(Date.now()),
+            }).where(eq(highlightTags.id, ht.id));
+          } else {
+            await tx.insert(highlightTags).values({
+              id: ht.id,
+              highlightId: ht.highlight_id,
+              tagId: ht.tag_id,
+              createdAt: new Date(ht.created_at || Date.now()),
+              updatedAt: new Date(Date.now()),
+            }).onConflictDoNothing();
+          }
+        }
+        for (const id of deleted) {
+          await tx.update(highlightTags).set({
+            deletedAt: new Date(),
+            updatedAt: new Date(),
+          }).where(eq(highlightTags.id, id));
+        }
+      }
+      // === Book Tags ===
+      if (changes.book_tags) {
+        const { created, updated, deleted } = changes.book_tags;
+        for (const bt of created) {
+          await tx.insert(bookTags).values({
+            id: bt.id,
+            bookId: bt.book_id,
+            tagId: bt.tag_id,
+            createdAt: new Date(bt.created_at),
+            updatedAt: new Date(bt.updated_at),
+          }).onConflictDoNothing();
+        }
+        for (const bt of updated) {
+          const exists = await tx.select({ id: bookTags.id }).from(bookTags).where(eq(bookTags.id, bt.id));
+          if (exists.length > 0) {
+            await tx.update(bookTags).set({
+              bookId: bt.book_id,
+              tagId: bt.tag_id,
+              updatedAt: new Date(Date.now()),
+            }).where(eq(bookTags.id, bt.id));
+          } else {
+            await tx.insert(bookTags).values({
+              id: bt.id,
+              bookId: bt.book_id,
+              tagId: bt.tag_id,
+              createdAt: new Date(bt.created_at || Date.now()),
+              updatedAt: new Date(Date.now()),
+            }).onConflictDoNothing();
+          }
+        }
+        for (const id of deleted) {
+          await tx.update(bookTags).set({
+            deletedAt: new Date(),
+            updatedAt: new Date(),
+          }).where(eq(bookTags.id, id));
         }
       }
     });
+    } catch (error) {
+      console.error('[sync push] Transaction error:', error);
+      throw error;
+    }
     return c.json({ success: true });
   }
 );

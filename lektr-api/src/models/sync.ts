@@ -9,6 +9,9 @@ export interface SyncResponse {
     highlights: TableChanges;
     decks: TableChanges;
     flashcards: TableChanges;
+    tags: TableChanges;
+    highlight_tags: TableChanges;
+    book_tags: TableChanges;
   };
   timestamp: number;
 }

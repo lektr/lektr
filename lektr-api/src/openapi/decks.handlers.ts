@@ -9,7 +9,7 @@ import {
   highlightTags,
   books,
 } from "../db/schema";
-import { eq, and, sql, desc, lte, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, lte, inArray, isNull, gt } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import {
   listDecksRoute,
@@ -45,8 +45,8 @@ function calculateNextReview(
   const now = new Date();
   const w = FSRS_DEFAULTS.w;
 
-  // First review - initialize
-  if (!fsrsData || fsrsData.state === 0) {
+  // First review - initialize (also handles malformed/incomplete fsrsData)
+  if (!fsrsData || fsrsData.state === 0 || typeof fsrsData.stability !== 'number' || typeof fsrsData.difficulty !== 'number') {
     // State 0 = New
     const initialStability = w[rating - 1];
     const initialDifficulty = w[4] - w[5] * (rating - 3);
@@ -96,6 +96,9 @@ function calculateNextReview(
     newS = S * (1 + Math.exp(w[8]) * (11 - D) * Math.pow(S, -w[9]) * (Math.exp((1 - R) * w[10]) - 1) * hardPenalty * easyBonus);
   }
 
+  // Guard against NaN from corrupt data
+  if (!isFinite(newS) || newS <= 0) newS = w[rating - 1] || 1;
+
   // Calculate interval
   const desiredRetention = 0.9;
   const intervalDays = Math.max(1, newS * Math.log(desiredRetention) / Math.log(0.9));
@@ -105,6 +108,9 @@ function calculateNextReview(
   if (rating === Rating.Again) adjustedInterval = Math.min(1, intervalDays * 0.5);
   else if (rating === Rating.Hard) adjustedInterval = intervalDays * 0.8;
   else if (rating === Rating.Easy) adjustedInterval = intervalDays * 1.3;
+
+  // Guard against NaN interval
+  if (!isFinite(adjustedInterval)) adjustedInterval = 1;
 
   const dueDate = new Date(now.getTime() + adjustedInterval * 24 * 60 * 60 * 1000);
 
@@ -170,14 +176,14 @@ decksOpenAPI.openapi(listDecksRoute, async (c) => {
   const userDecks = await db
     .select()
     .from(decks)
-    .where(eq(decks.userId, user.userId))
+    .where(and(eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .orderBy(desc(decks.createdAt));
 
   // Get card counts per deck
   const cardCounts = await db.execute(sql`
     SELECT deck_id, count(*)::int as count
     FROM flashcards
-    WHERE user_id = ${user.userId}
+    WHERE user_id = ${user.userId} AND deleted_at IS NULL
     GROUP BY deck_id
   `);
 
@@ -185,7 +191,7 @@ decksOpenAPI.openapi(listDecksRoute, async (c) => {
   const dueCounts = await db.execute(sql`
     SELECT deck_id, count(*)::int as count
     FROM flashcards
-    WHERE user_id = ${user.userId} AND due_at <= NOW()
+    WHERE user_id = ${user.userId} AND due_at <= NOW() AND deleted_at IS NULL
     GROUP BY deck_id
   `);
 
@@ -285,7 +291,7 @@ decksOpenAPI.openapi(getDeckRoute, async (c) => {
   const [deck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!deck) {
@@ -305,10 +311,10 @@ decksOpenAPI.openapi(getDeckRoute, async (c) => {
 
   // Get counts
   const [cardCount] = await db.execute(sql`
-    SELECT count(*)::int as count FROM flashcards WHERE deck_id = ${deckId}
+    SELECT count(*)::int as count FROM flashcards WHERE deck_id = ${deckId} AND deleted_at IS NULL
   `);
   const [dueCount] = await db.execute(sql`
-    SELECT count(*)::int as count FROM flashcards WHERE deck_id = ${deckId} AND due_at <= NOW()
+    SELECT count(*)::int as count FROM flashcards WHERE deck_id = ${deckId} AND due_at <= NOW() AND deleted_at IS NULL
   `);
 
   return c.json({
@@ -330,7 +336,7 @@ decksOpenAPI.openapi(updateDeckRoute, async (c) => {
   const [existingDeck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!existingDeck) {
@@ -386,15 +392,17 @@ decksOpenAPI.openapi(deleteDeckRoute, async (c) => {
   const [deck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!deck) {
     return c.json({ error: "Deck not found" }, 404);
   }
 
-  // Cascade delete handled by DB constraints
-  await db.delete(decks).where(eq(decks.id, deckId));
+  // Soft-delete the deck and cascade to its flashcards
+  const now = new Date();
+  await db.update(decks).set({ deletedAt: now, updatedAt: now }).where(eq(decks.id, deckId));
+  await db.update(flashcards).set({ deletedAt: now, updatedAt: now }).where(and(eq(flashcards.deckId, deckId), eq(flashcards.userId, user.userId)));
 
   return c.json({ success: true }, 200);
 });
@@ -415,7 +423,7 @@ decksOpenAPI.openapi(listCardsRoute, async (c) => {
   const [deck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!deck) {
@@ -438,13 +446,13 @@ decksOpenAPI.openapi(listCardsRoute, async (c) => {
     .from(flashcards)
     .leftJoin(highlights, eq(flashcards.highlightId, highlights.id))
     .leftJoin(books, eq(highlights.bookId, books.id))
-    .where(eq(flashcards.deckId, deckId))
+    .where(and(eq(flashcards.deckId, deckId), isNull(flashcards.deletedAt)))
     .orderBy(desc(flashcards.createdAt))
     .limit(limit)
     .offset(offset);
 
   const [countResult] = await db.execute(sql`
-    SELECT count(*)::int as count FROM flashcards WHERE deck_id = ${deckId}
+    SELECT count(*)::int as count FROM flashcards WHERE deck_id = ${deckId} AND deleted_at IS NULL
   `);
 
   return c.json({
@@ -467,7 +475,7 @@ decksOpenAPI.openapi(createCardRoute, async (c) => {
   const [deck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!deck) {
@@ -520,7 +528,7 @@ decksOpenAPI.openapi(updateCardRoute, async (c) => {
   const [card] = await db
     .select()
     .from(flashcards)
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, user.userId)))
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, user.userId), isNull(flashcards.deletedAt)))
     .limit(1);
 
   if (!card) {
@@ -549,14 +557,15 @@ decksOpenAPI.openapi(deleteCardRoute, async (c) => {
   const [card] = await db
     .select()
     .from(flashcards)
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, user.userId)))
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, user.userId), isNull(flashcards.deletedAt)))
     .limit(1);
 
   if (!card) {
     return c.json({ error: "Card not found" }, 404);
   }
 
-  await db.delete(flashcards).where(eq(flashcards.id, cardId));
+  const now = new Date();
+  await db.update(flashcards).set({ deletedAt: now, updatedAt: now }).where(eq(flashcards.id, cardId));
 
   return c.json({ success: true }, 200);
 });
@@ -576,7 +585,7 @@ decksOpenAPI.openapi(getStudySessionRoute, async (c) => {
   const [deck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!deck) {
@@ -606,7 +615,7 @@ decksOpenAPI.openapi(getStudySessionRoute, async (c) => {
       .from(flashcards)
       .leftJoin(highlights, eq(flashcards.highlightId, highlights.id))
       .leftJoin(books, eq(highlights.bookId, books.id))
-      .where(and(eq(flashcards.deckId, deckId), lte(flashcards.dueAt, now)))
+      .where(and(eq(flashcards.deckId, deckId), lte(flashcards.dueAt, now), isNull(flashcards.deletedAt)))
       .orderBy(flashcards.dueAt)
       .limit(limit);
 
@@ -638,15 +647,29 @@ decksOpenAPI.openapi(getStudySessionRoute, async (c) => {
     }
 
     const tagIds = deckTagIds.map((t) => t.tagId);
-    const settings = deck.settings as { includeRawHighlights?: boolean } | null;
 
-    // Find highlights with matching tags
+    // Find highlights with matching tags, respecting AND/OR logic
     const matchingHighlightIds = await db
-      .select({ highlightId: highlightTags.highlightId })
+      .select({ highlightId: highlightTags.highlightId, tagId: highlightTags.tagId })
       .from(highlightTags)
       .where(inArray(highlightTags.tagId, tagIds));
 
-    const hlIds = [...new Set(matchingHighlightIds.map((h) => h.highlightId))];
+    let hlIds: string[];
+    if (deck.tagLogic === "AND") {
+      // AND: highlights must have ALL selected tags
+      const hlTagCounts = new Map<string, Set<string>>();
+      for (const row of matchingHighlightIds) {
+        if (!hlTagCounts.has(row.highlightId)) hlTagCounts.set(row.highlightId, new Set());
+        hlTagCounts.get(row.highlightId)!.add(row.tagId);
+      }
+      hlIds = [];
+      for (const [hlId, tagSet] of hlTagCounts) {
+        if (tagIds.every((t) => tagSet.has(t))) hlIds.push(hlId);
+      }
+    } else {
+      // OR: any matching tag is sufficient
+      hlIds = [...new Set(matchingHighlightIds.map((h) => h.highlightId))];
+    }
 
     if (hlIds.length === 0) {
       return c.json({ cards: [], totalDue: 0 }, 200);
@@ -666,7 +689,8 @@ decksOpenAPI.openapi(getStudySessionRoute, async (c) => {
         and(
           eq(flashcards.userId, user.userId),
           inArray(flashcards.highlightId, hlIds),
-          lte(flashcards.dueAt, now)
+          lte(flashcards.dueAt, now),
+          isNull(flashcards.deletedAt)
         )
       )
       .orderBy(flashcards.dueAt)
@@ -689,16 +713,16 @@ decksOpenAPI.openapi(getStudySessionRoute, async (c) => {
       });
     }
 
-    // If settings include raw highlights, add virtual cards
-    if (settings?.includeRawHighlights && studyItems.length < limit) {
-      // Find highlights without flashcards
+    // Always include virtual cards from tagged highlights that don't have flashcards yet
+    if (studyItems.length < limit) {
       const existingHlIds = await db
         .select({ highlightId: flashcards.highlightId })
         .from(flashcards)
         .where(
           and(
             eq(flashcards.userId, user.userId),
-            inArray(flashcards.highlightId, hlIds)
+            inArray(flashcards.highlightId, hlIds),
+            isNull(flashcards.deletedAt)
           )
         );
 
@@ -761,7 +785,7 @@ decksOpenAPI.openapi(submitReviewRoute, async (c) => {
   const [card] = await db
     .select()
     .from(flashcards)
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, user.userId)))
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, user.userId), isNull(flashcards.deletedAt)))
     .limit(1);
 
   if (!card) {
@@ -812,7 +836,7 @@ decksOpenAPI.openapi(submitVirtualReviewRoute, async (c) => {
   const [deck] = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, body.deckId), eq(decks.userId, user.userId)))
+    .where(and(eq(decks.id, body.deckId), eq(decks.userId, user.userId), isNull(decks.deletedAt)))
     .limit(1);
 
   if (!deck) {

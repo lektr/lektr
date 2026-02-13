@@ -219,31 +219,47 @@ export const tags = pgTable("tags", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-// Highlight-Tags Junction Table (many-to-many)
+// Highlight-Tags Junction Table (many-to-many, with UUID id for sync)
 export const highlightTags = pgTable("highlight_tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
   highlightId: uuid("highlight_id")
     .notNull()
     .references(() => highlights.id, { onDelete: "cascade" }),
   tagId: uuid("tag_id")
     .notNull()
     .references(() => tags.id, { onDelete: "cascade" }),
-}, (table) => ({
-  pk: { columns: [table.highlightId, table.tagId] },
-}));
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
 
-// Book-Tags Junction Table (many-to-many)
+// Book-Tags Junction Table (many-to-many, with UUID id for sync)
 export const bookTags = pgTable("book_tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
   bookId: uuid("book_id")
     .notNull()
     .references(() => books.id, { onDelete: "cascade" }),
   tagId: uuid("tag_id")
     .notNull()
     .references(() => tags.id, { onDelete: "cascade" }),
-}, (table) => ({
-  pk: { columns: [table.bookId, table.tagId] },
-}));
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
 
 // Decks Table - Flashcard deck containers (manual or smart/tag-based)
 export const decks = pgTable("decks", {
@@ -262,6 +278,7 @@ export const decks = pgTable("decks", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete marker
 });
 
 // Deck-Tags Junction Table (for Smart Decks - links deck to tags)
@@ -298,6 +315,7 @@ export const flashcards = pgTable("flashcards", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete marker
 });
 
 // Deck Relations

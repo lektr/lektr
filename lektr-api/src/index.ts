@@ -59,6 +59,12 @@ const corsOrigins = process.env.CORS_ORIGINS
 // Create OpenAPI-enabled Hono app
 const app = new OpenAPIHono();
 
+// Global error handler — ensures every error produces a response
+app.onError((err, c) => {
+  console.error('Unhandled error:', err);
+  return c.json({ error: err.message || 'Internal server error' }, 500);
+});
+
 // Middleware
 app.use("*", logger());
 app.use(
