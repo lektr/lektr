@@ -22,6 +22,8 @@ const ReviewItemSchema = z.object({
 const ReviewQueueResponseSchema = z.object({
   items: z.array(ReviewItemSchema),
   total: z.number(),
+  dueCount: z.number(),
+  newCount: z.number(),
   completed: z.number(),
 }).openapi("ReviewQueueResponse");
 

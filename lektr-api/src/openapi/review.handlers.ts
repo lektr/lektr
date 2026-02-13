@@ -27,21 +27,43 @@ reviewOpenAPI.openapi(getReviewQueueRoute, async (c) => {
   const user = c.get("user");
   const now = new Date();
 
+  // 1. Get actually-due highlights (have been reviewed before, due date has passed)
   const dueHighlights = await db.execute(sql`
-    SELECT 
+    SELECT
       h.id, h.content, h.note, h.chapter, h.page, h.book_id, h.fsrs_card,
       b.title as book_title, b.author as book_author
     FROM highlights h
     JOIN books b ON h.book_id = b.id
     WHERE h.user_id = ${user.userId}
-      AND (h.fsrs_card IS NULL OR (h.fsrs_card->>'due')::timestamp <= ${now.toISOString()}::timestamp)
-    ORDER BY CASE WHEN h.fsrs_card IS NULL THEN 0 ELSE 1 END, (h.fsrs_card->>'due')::timestamp ASC NULLS FIRST
-    LIMIT 5
+      AND h.fsrs_card IS NOT NULL
+      AND (h.fsrs_card->>'due')::timestamp <= ${now.toISOString()}::timestamp
+      AND h.deleted_at IS NULL
+    ORDER BY (h.fsrs_card->>'due')::timestamp ASC
+    LIMIT 20
   `);
 
-  const rows = Array.isArray(dueHighlights) ? dueHighlights : (dueHighlights as any)?.rows || [];
+  const dueRows = Array.isArray(dueHighlights) ? dueHighlights : (dueHighlights as any)?.rows || [];
 
-  const reviewItems = rows.map((row: any) => ({
+  // 2. Get new/unreviewed highlights (cap at 3 per session to avoid overwhelming)
+  const newHighlights = await db.execute(sql`
+    SELECT
+      h.id, h.content, h.note, h.chapter, h.page, h.book_id, h.fsrs_card,
+      b.title as book_title, b.author as book_author
+    FROM highlights h
+    JOIN books b ON h.book_id = b.id
+    WHERE h.user_id = ${user.userId}
+      AND h.fsrs_card IS NULL
+      AND h.deleted_at IS NULL
+    ORDER BY h.created_at DESC
+    LIMIT 3
+  `);
+
+  const newRows = Array.isArray(newHighlights) ? newHighlights : (newHighlights as any)?.rows || [];
+
+  // Combine: due first, then new
+  const allRows = [...dueRows, ...newRows];
+
+  const reviewItems = allRows.map((row: any) => ({
     id: row.id,
     content: row.content,
     note: row.note,
@@ -52,7 +74,23 @@ reviewOpenAPI.openapi(getReviewQueueRoute, async (c) => {
     fsrsCard: row.fsrs_card,
   }));
 
-  return c.json({ items: reviewItems, total: reviewItems.length, completed: 0 }, 200);
+  // Count total actually-due (for dashboard display)
+  const [totalDue] = await db.execute(sql`
+    SELECT count(*)::int as count
+    FROM highlights h
+    WHERE h.user_id = ${user.userId}
+      AND h.fsrs_card IS NOT NULL
+      AND (h.fsrs_card->>'due')::timestamp <= ${now.toISOString()}::timestamp
+      AND h.deleted_at IS NULL
+  `);
+
+  return c.json({
+    items: reviewItems,
+    total: reviewItems.length,
+    dueCount: Number((totalDue as any).count || 0),
+    newCount: newRows.length,
+    completed: 0,
+  }, 200);
 });
 
 // POST /:id - Submit review rating
@@ -69,7 +107,7 @@ reviewOpenAPI.openapi(submitReviewRoute, async (c) => {
 
   let card: Card;
   const existingCard = highlight.fsrsCard as any;
-  
+
   if (existingCard && existingCard.state !== undefined) {
     card = {
       due: new Date(existingCard.due),
@@ -134,7 +172,7 @@ reviewOpenAPI.openapi(getReviewStatsRoute, async (c) => {
   const now = new Date();
 
   const stats = await db.execute(sql`
-    SELECT 
+    SELECT
       COUNT(*) FILTER (WHERE fsrs_card IS NULL) as new_count,
       COUNT(*) FILTER (WHERE fsrs_card IS NOT NULL AND (fsrs_card->>'due')::timestamp <= ${now.toISOString()}::timestamp) as due_count,
       COUNT(*) FILTER (WHERE fsrs_card IS NOT NULL AND (fsrs_card->>'state')::int = 1) as learning_count,
