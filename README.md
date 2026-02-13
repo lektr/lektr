@@ -21,8 +21,8 @@
     </a>
   </p>
 
-  <!-- TODO: Replace with actual screenshot -->
-  <!-- <img src="docs/images/hero-screenshot.png" alt="Lektr Dashboard" width="800" /> -->
+  <img width="2230" height="1959" alt="dashboard-preview" src="https://github.com/user-attachments/assets/4ff37171-d94e-41a8-97a0-83dad5ae0efe" />
+
 </div>
 
 > [!IMPORTANT]
