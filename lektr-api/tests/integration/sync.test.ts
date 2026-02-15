@@ -137,7 +137,8 @@ describe("Sync API", () => {
       });
       expect(res.status).toBe(200);
       const body = await res.json();
-      const book = body.changes.books.created[0];
+      // Handler uses sendCreatedAsUpdated pattern — all records go into `updated`
+      const book = body.changes.books.updated[0];
       expect(book.cover_image_url).toBe("https://example.com/cover.jpg");
       expect(book.created_at).toBe(now.getTime());
       expect(book.updated_at).toBe(now.getTime());

@@ -182,7 +182,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <AuthGuard>
+    <AuthGuard requiredRole="admin">
       <div className="container py-8 max-w-[1200px] mx-auto min-h-screen">
         <div className="max-w-2xl mx-auto">
           <PageHeader
@@ -482,7 +482,7 @@ export default function AdminSettingsPage() {
                     Help us improve Lektr by sending anonymous usage data. We respect your privacy and never track personal content.
                     <br/>
                     <a
-                      href="docs/admin/telemetry"
+                      href="https://lektr.app/docs/admin/telemetry"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline inline-flex items-center gap-1 mt-1"

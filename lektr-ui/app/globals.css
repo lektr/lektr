@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root {
+:root, .light {
   /* Nordic Light Mode - Soft paper whites, calm blues */
   --background: #f7f8fa;
   --foreground: #1a1d21;
@@ -10,11 +10,16 @@
   --border: #e2e4e9;
   --primary: #2563eb;
   --primary-foreground: #ffffff;
+  --secondary: #6b7280;
+  --secondary-foreground: #ffffff;
   --accent: #0ea5e9;
   --accent-foreground: #ffffff;
   --success: #059669;
+  --success-foreground: #ffffff;
   --warning: #d97706;
+  --warning-foreground: #ffffff;
   --error: #dc2626;
+  --error-foreground: #ffffff;
   --ring: rgba(37, 99, 235, 0.25);
 }
 
@@ -28,30 +33,17 @@
   --border: #2d3139;
   --primary: #60a5fa;
   --primary-foreground: #0f1114;
+  --secondary: #9ca3af;
+  --secondary-foreground: #0f1114;
   --accent: #38bdf8;
   --accent-foreground: #0f1114;
   --success: #34d399;
+  --success-foreground: #0f1114;
   --warning: #fbbf24;
+  --warning-foreground: #0f1114;
   --error: #f87171;
+  --error-foreground: #0f1114;
   --ring: rgba(96, 165, 250, 0.25);
-}
-
-/* Light mode via explicit class (same as :root, for override scenarios) */
-.light {
-  --background: #f7f8fa;
-  --foreground: #1a1d21;
-  --card: #ffffff;
-  --muted: #e8eaed;
-  --muted-foreground: #6b7280;
-  --border: #e2e4e9;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --accent: #0ea5e9;
-  --accent-foreground: #ffffff;
-  --success: #059669;
-  --warning: #d97706;
-  --error: #dc2626;
-  --ring: rgba(37, 99, 235, 0.25);
 }
 
 @theme inline {
@@ -63,11 +55,16 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-serif: var(--font-literata), Georgia, serif;
 }

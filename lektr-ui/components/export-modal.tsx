@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { X, Download, FileText, FileSpreadsheet, ExternalLink, Check, Loader2 } from "lucide-react";
 import { getExportProviders, triggerExport, type ExportProvider } from "@/lib/api";
+import { Modal } from "./modal";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -112,8 +113,7 @@ export function ExportModal({ isOpen, onClose, bookIds, bookTitle }: ExportModal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-card rounded-xl border border-border/50 p-6 max-w-lg w-full shadow-2xl animate-slide-up">
+    <Modal onClose={onClose} maxWidth="lg">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-serif font-bold text-foreground">
             Export Highlights
@@ -263,7 +263,6 @@ export function ExportModal({ isOpen, onClose, bookIds, bookTitle }: ExportModal
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import DOMPurify from "isomorphic-dompurify";
 import { cn } from "@/lib/utils";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 
@@ -46,9 +47,9 @@ export function Flashcard({ front, back, isFlipped, onFlip, className, highlight
   const isVirtualCard = back.startsWith(frontTrimmed) && front.endsWith("...");
   const isSameContent = front.trim() === back.trim();
 
-  // For cloze cards, we parse front. For standard, we use front/back as-is.
-  const frontDisplay = isClozeCard ? renderClozeFront(front) : null;
-  const backDisplay = isClozeCard ? renderClozeBack(front) : null;
+  // For cloze cards, we parse front and sanitize to prevent XSS.
+  const frontDisplay = isClozeCard ? DOMPurify.sanitize(renderClozeFront(front)) : null;
+  const backDisplay = isClozeCard ? DOMPurify.sanitize(renderClozeBack(front)) : null;
 
   // Determine labels based on card type
   const frontLabel = isClozeCard ? "Fill in the Blank" : (isVirtualCard || isSameContent) ? "Preview" : "Question";
@@ -58,6 +59,10 @@ export function Flashcard({ front, back, isFlipped, onFlip, className, highlight
     <div
       className={cn("w-full max-w-2xl mx-auto h-[400px] cursor-pointer group", className)}
       onClick={onFlip}
+      onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); onFlip(); } }}
+      tabIndex={0}
+      role="button"
+      aria-label={isFlipped ? "Flashcard showing answer. Press Space to flip." : "Flashcard showing question. Press Space to flip."}
       style={{ perspective: "1000px" }}
     >
       <div

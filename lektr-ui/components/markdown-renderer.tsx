@@ -18,13 +18,13 @@ export function MarkdownRenderer({
   const [expanded, setExpanded] = useState(false);
   
   const shouldTruncate = content.length > maxLength && !expanded;
-  const displayContent = shouldTruncate 
-    ? content.slice(0, maxLength) + "…" 
+  const displayContent = shouldTruncate
+    ? content.slice(0, content.lastIndexOf(" ", maxLength) || maxLength) + "…"
     : content;
 
   return (
     <div className={className}>
-      <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1">
+      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{

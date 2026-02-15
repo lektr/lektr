@@ -131,27 +131,12 @@ export default function LibraryPage() {
 
     let result = [...data.books];
 
-    // 0. Base Filter: If user selected "Has highlights" explicitly or implicitly?
-    // The legacy code filtered out books with no highlights by default (line 65).
-    // Let's preserve that ONLY if no specific status filter overrides it.
-    // Actually, "No Highlights" is a status option now.
-    // If NO status filter is selected, maybe we default to showing everything that has highlights?
-    // Or maybe we show everything by default?
-    // The previous code had: let result = data.books.filter((b) => b.highlightCount > 0);
-    // Let's stick to showing everything unless filtered, BUT maybe users want to see only highlighted books.
-    // Let's respect the "status" filter. If empty, maybe show all (or keep legacy behavior?)
-    // Decision: Show ALL books by default now that we have filters.
-    // If they want only highlighted, they can filter "Has highlights".
-
-    // Actually, legacy filtered out empty books. Keep that?
-    // "Filter out books with no highlights" -> Users probably imported empty books and don't want to see them.
-    // Let's make "Has Highlights" selected by default? or just filter out 0 highlights unless "No Highlights" is selected?
-    // Let's allow seeing empty books if explicitly asked, but default to >0 highlights if status is empty.
+    // Status filter: when no filter is active, hide books with 0 highlights
+    // (imported empty books). Use "No Highlights" filter to see them explicitly.
     const showEmpty = filters.status.includes("no_highlights");
     const showHighlighted = filters.status.includes("has_highlights");
     const showPinned = filters.status.includes("pinned");
 
-    // Status Logic:
     if (filters.status.length > 0) {
       result = result.filter(b => {
         if (showPinned && b.pinnedAt) return true;
@@ -160,12 +145,7 @@ export default function LibraryPage() {
         return false;
       });
     } else {
-        // Legacy Default: Only show books with highlights?
-        // Or show all? The previous code forced >0.
-        // Let's relax this to show all, so users can find manual entries they just made.
-        // Or better: Filter out 0-highlight books UNLESS they are pinned or created manually?
-        // Let's just filter > 0 for now as per original code, UNLESS user actively filters.
-        result = result.filter((b) => b.highlightCount > 0);
+      result = result.filter((b) => b.highlightCount > 0);
     }
 
     // Source Filter

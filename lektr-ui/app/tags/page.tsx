@@ -83,13 +83,12 @@ export default function TagsPage() {
         case "date":
           comparison = new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
           break;
-        case "count":
-          break;
-        case "count":
+        case "count": {
           const totalA = (a.bookCount || 0) + (a.highlightCount || 0);
           const totalB = (b.bookCount || 0) + (b.highlightCount || 0);
           comparison = totalA - totalB;
           break;
+        }
       }
       return sortDesc ? -comparison : comparison;
     });
