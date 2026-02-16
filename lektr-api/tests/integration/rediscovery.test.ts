@@ -10,15 +10,15 @@
  */
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { mockDb } from "./mocks/db";
+import { mockDb } from "../mocks/db";
 
 // Mock dependencies
-vi.mock("../src/db", () => ({
+vi.mock("../../src/db", () => ({
   db: mockDb,
 }));
 
 // Mock Auth Middleware
-vi.mock("../src/middleware/auth", () => ({
+vi.mock("../../src/middleware/auth", () => ({
   authMiddleware: async (c: any, next: any) => {
     const authHeader = c.req.header("Authorization");
     if (!authHeader) {
@@ -36,7 +36,7 @@ describe("Rediscovery API", () => {
   beforeEach(async () => {
     mockDb.$reset();
     const { rediscoveryOpenAPI } = await import(
-      "../src/openapi/rediscovery.handlers"
+      "../../src/openapi/rediscovery.handlers"
     );
     app = new Hono();
     app.route("/rediscovery", rediscoveryOpenAPI);

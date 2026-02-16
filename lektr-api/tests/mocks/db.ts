@@ -4,6 +4,7 @@ import { vi } from "vitest";
 const createMockDb = () => {
   let response: any[] = [];
   let executeResponse: any[] = [];
+  let queryResponse: any = undefined;
 
   const chainable: any = {
     select: vi.fn(() => chainable),
@@ -31,10 +32,11 @@ const createMockDb = () => {
 
     // execute() returns an iterable array-like result for raw SQL
     execute: vi.fn(() => {
-      // Create an array that is iterable and also has rows property
-      const result = executeResponse.length > 0 ? executeResponse.shift() : [];
-      const iterableResult = [...result];
-      Object.defineProperty(iterableResult, 'rows', { value: result });
+      const raw = executeResponse.length > 0 ? executeResponse.shift() : [];
+      // Support both { rows: [...] } format and plain array format
+      const rows = raw && raw.rows ? raw.rows : (Array.isArray(raw) ? raw : []);
+      const iterableResult = [...rows];
+      Object.defineProperty(iterableResult, 'rows', { value: rows });
       return Promise.resolve(iterableResult);
     }),
 
@@ -70,10 +72,17 @@ const createMockDb = () => {
       return chainable;
     },
 
+    // Queue multiple execute() responses (consumed in order)
+    $queueExecuteResponses: (responses: any[]) => {
+      executeResponse = responses;
+      return chainable;
+    },
+
     // Reset all mocks
     $reset: () => {
       response = [];
       executeResponse = [];
+      queryResponse = undefined;
       chainable.select.mockClear();
       chainable.from.mockClear();
       chainable.where.mockClear();
@@ -87,8 +96,34 @@ const createMockDb = () => {
       chainable.delete.mockClear();
       chainable.execute.mockClear();
       return chainable;
+    },
+
+    // Set response for db.query.*.findFirst() calls
+    $setQueryResponse: (val: any) => {
+      queryResponse = val;
+      return chainable;
+    },
+  };
+
+  // db.query.<table>.findFirst() support — returns queryResponse then resets it
+  const queryHandler = {
+    get(_target: any, _tableName: string) {
+      return {
+        findFirst: vi.fn(async () => {
+          const val = queryResponse;
+          queryResponse = undefined;
+          return val;
+        }),
+        findMany: vi.fn(async () => {
+          const val = queryResponse;
+          queryResponse = undefined;
+          return Array.isArray(val) ? val : val ? [val] : [];
+        }),
+      };
     }
   };
+
+  chainable.query = new Proxy({}, queryHandler);
 
   return chainable;
 };
