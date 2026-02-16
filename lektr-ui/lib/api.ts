@@ -415,6 +415,22 @@ export async function getVersion(): Promise<{ version: string; name: string }> {
   return response.json();
 }
 
+// Capabilities API
+export interface Capabilities {
+  cloud: boolean;
+  billing: boolean;
+  teams: boolean;
+  sso: boolean;
+}
+
+export async function getCapabilities(): Promise<Capabilities> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/capabilities`);
+  if (!response.ok) {
+    throw new Error("Failed to get capabilities");
+  }
+  return response.json();
+}
+
 // Settings API
 export interface SettingsResponse {
   settings: Record<string, { value: string; description: string | null }>;
