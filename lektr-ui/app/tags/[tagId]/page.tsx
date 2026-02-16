@@ -164,20 +164,12 @@ export default function TagDetailPage() {
     updatedAt: new Date().toISOString()
   }));
 
-  // Map Highlights
+  // Map TagDetailHighlight to the shape HighlightCard expects
   const mappedHighlights = highlights.map(h => ({
     ...h,
-    userId: "",
     originalContent: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    cfiRange: null,
-    color: "yellow",
-    position: 0,
+    sourceUrl: null,
     tags: [],
-    // Join fields
-    bookTitle: h.bookTitle,
-    bookAuthor: h.bookAuthor
   }));
 
   return (
@@ -310,7 +302,7 @@ export default function TagDetailPage() {
                     {mappedHighlights.map((highlight) => (
                       <HighlightCard 
                         key={highlight.id} 
-                        highlight={highlight as any} 
+                        highlight={highlight}
                         accentColor={isHex ? rawColor : undefined} // Only pass if hex, otherwise card falls back to default
                         showBookInfo={true}
                         className="break-inside-avoid mb-6"

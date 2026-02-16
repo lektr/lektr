@@ -239,14 +239,14 @@ export function ExportModal({ isOpen, onClose, bookIds, bookTitle }: ExportModal
             <div className="flex gap-3 justify-end">
               <button
                 onClick={onClose}
-                className="px-6 py-2 rounded-full bg-muted/50 hover:bg-muted text-foreground transition-all duration-200 font-medium cursor-pointer"
+                className="btn btn-secondary cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExport}
                 disabled={!selectedProvider || exportMutation.isPending}
-                className="px-6 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                className="btn btn-primary flex items-center gap-2 cursor-pointer"
               >
                 {exportMutation.isPending ? (
                   <>

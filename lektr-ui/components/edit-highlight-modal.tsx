@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MarkdownEditor } from "./markdown-editor";
+import { Modal } from "./modal";
 
 interface EditHighlightModalProps {
   highlight: { id: string; content: string; note: string | null };
@@ -23,8 +24,7 @@ export function EditHighlightModal({ highlight, onClose, onSave, isSaving }: Edi
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl p-6 max-w-lg w-full shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} maxWidth="lg">
         <h2 className="text-xl font-semibold mb-4">Edit Highlight</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,7 +77,6 @@ export function EditHighlightModal({ highlight, onClose, onSave, isSaving }: Edi
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

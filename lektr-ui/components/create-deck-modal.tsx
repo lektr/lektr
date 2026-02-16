@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createDeck } from "@/lib/api";
 import { MultiTagSelector } from "@/components/multi-tag-selector";
+import { Modal } from "@/components/modal";
 
 interface CreateDeckModalProps {
 // ... existing interface ...
@@ -77,11 +78,7 @@ export function CreateDeckModal({ isOpen, onClose }: CreateDeckModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div
-        className="bg-card rounded-2xl p-6 max-w-md w-full shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={handleClose} maxWidth="md">
         <h2 className="text-xl font-semibold mb-6">Create New Deck</h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -213,7 +210,6 @@ export function CreateDeckModal({ isOpen, onClose }: CreateDeckModalProps) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

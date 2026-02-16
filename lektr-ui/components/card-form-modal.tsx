@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createCard, updateCard, getDecks, type Flashcard, type Highlight, type Deck } from "@/lib/api";
 import { MarkdownEditor } from "@/components/markdown-editor";
+import { Modal } from "@/components/modal";
 import Link from "next/link";
 import { ExternalLink, ArrowRight, ArrowLeft, ArrowDown, ArrowUp } from "lucide-react";
 
@@ -205,11 +206,7 @@ export function CardFormModal({ isOpen, onClose, deckId, card, highlight, onSucc
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div
-        className="bg-card rounded-2xl p-6 max-w-4xl w-full shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} maxWidth="4xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">{getTitle()}</h2>
           <div className="text-xs text-muted-foreground hidden sm:block">
@@ -395,7 +392,6 @@ export function CardFormModal({ isOpen, onClose, deckId, card, highlight, onSucc
             )}
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

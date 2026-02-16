@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import {
   getSettings,
   updateSettings,
@@ -17,6 +16,7 @@ import {
 import { AuthGuard } from "@/components/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/switch";
+import { Modal } from "@/components/modal";
 
 interface ReductionWarning {
   setting: string;
@@ -192,8 +192,7 @@ export default function AdminSettingsPage() {
 
         {/* Warning Modal */}
         {showWarning && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-card rounded-xl border border-border/50 p-6 max-w-md w-full shadow-2xl animate-slide-up">
+          <Modal onClose={cancelSave}>
               <h2 className="text-xl font-serif font-bold mb-4 text-warning flex items-center gap-2">
                 ⚠️ Possible Data Impact
               </h2>
@@ -212,25 +211,23 @@ export default function AdminSettingsPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={cancelSave}
-                  className="px-6 py-2 rounded-full bg-muted/50 hover:bg-muted text-foreground transition-all duration-200 font-medium"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmSave}
-                  className="px-6 py-2 rounded-full bg-warning text-warning-foreground hover:bg-warning/90 transition-all duration-200 font-medium shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  className="px-6 py-2 rounded-full bg-warning text-warning-foreground hover:bg-warning/90 transition-all duration-200 font-medium shadow-sm"
                 >
                   Save Anyway
                 </button>
               </div>
-            </div>
-          </div>
+          </Modal>
         )}
 
         {/* Digest Confirmation Modal */}
         {showDigestConfirm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-card rounded-xl border border-border/50 p-6 max-w-md w-full shadow-2xl animate-slide-up">
+          <Modal onClose={() => setShowDigestConfirm(false)}>
               <h2 className="text-xl font-serif font-bold mb-4 text-foreground flex items-center gap-2">
                 📬 Send Daily Digest
               </h2>
@@ -241,20 +238,19 @@ export default function AdminSettingsPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowDigestConfirm(false)}
-                  className="px-6 py-2 rounded-full bg-muted/50 hover:bg-muted text-foreground transition-all duration-200 font-medium"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => digestMutation.mutate()}
                   disabled={digestMutation.isPending}
-                  className="px-6 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 font-medium shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50"
+                  className="btn btn-primary"
                 >
                   {digestMutation.isPending ? "Sending..." : "Send Now"}
                 </button>
               </div>
-            </div>
-          </div>
+          </Modal>
         )}
 
         {isLoading ? (
@@ -395,7 +391,7 @@ export default function AdminSettingsPage() {
                       <button
                         onClick={handleTestEmail}
                         disabled={testEmailMutation.isPending || !testEmailAddress}
-                        className="px-6 py-2 rounded-full bg-secondary text-secondary-foreground font-medium transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="btn btn-secondary"
                       >
                         {testEmailMutation.isPending ? "Sending..." : "Send Test"}
                       </button>
@@ -411,7 +407,7 @@ export default function AdminSettingsPage() {
                     <button
                       onClick={handleSaveEmailSettings}
                       disabled={emailMutation.isPending}
-                      className="px-6 py-2 rounded-full bg-primary text-primary-foreground font-medium transition-all duration-200 hover:opacity-90 disabled:opacity-50"
+                      className="btn btn-primary"
                     >
                       {emailMutation.isPending ? "Saving..." : "Save Email Settings"}
                     </button>
@@ -448,11 +444,7 @@ export default function AdminSettingsPage() {
                     setShowDigestConfirm(true);
                   }}
                   disabled={!emailData?.isConfigured}
-                  className={`px-6 py-2 rounded-full font-medium transition-all duration-200 ${
-                    !emailData?.isConfigured
-                      ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : "bg-secondary text-secondary-foreground hover:opacity-90"
-                  }`}
+                  className="btn btn-secondary"
                 >
                   Send Digest
                 </button>
@@ -616,11 +608,7 @@ export default function AdminSettingsPage() {
                   <button
                     onClick={() => metadataMutation.mutate()}
                     disabled={metadataMutation.isPending}
-                    className={`px-6 py-2 rounded-full font-medium transition-all duration-200 ${
-                      metadataMutation.isPending
-                        ? "bg-muted text-muted-foreground cursor-not-allowed"
-                        : "bg-secondary text-secondary-foreground hover:opacity-90"
-                    }`}
+                    className="btn btn-secondary"
                   >
                     {metadataMutation.isPending ? "Refreshing..." : "Refresh"}
                   </button>
@@ -645,11 +633,7 @@ export default function AdminSettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={updateMutation.isPending}
-                className={`px-8 py-2.5 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
-                  updateMutation.isPending
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-primary text-primary-foreground hover:opacity-90 active:scale-95"
-                }`}
+                className="btn btn-primary"
               >
                 {updateMutation.isPending ? "Saving..." : "Save Settings"}
               </button>

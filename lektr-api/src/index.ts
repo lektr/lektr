@@ -104,7 +104,7 @@ app.doc("/openapi.json", {
   openapi: "3.1.0",
   info: {
     title: "Lektr API",
-    version: "0.2.0",
+    version: "0.2.5",
     description: "API for managing book highlights and spaced repetition review",
   },
   servers: [
@@ -119,7 +119,7 @@ app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 app.get("/", (c) => {
   return c.json({
     name: "Lektr API",
-    version: "0.2.0",
+    version: "0.2.5",
     status: "running",
     docs: "/docs",
   });
@@ -129,7 +129,7 @@ app.get("/", (c) => {
 app.get("/api/v1/version", (c) => {
   return c.json({
     name: "Lektr API",
-    version: "0.2.0",
+    version: "0.2.5",
   });
 });
 

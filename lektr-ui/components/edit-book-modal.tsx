@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { refreshBookCover } from "@/lib/api";
+import { Modal } from "@/components/modal";
 
 interface EditBookModalProps {
   book: { id: string; title: string; author: string | null };
@@ -46,8 +47,7 @@ export function EditBookModal({ book, onClose, onSave, onCoverRefreshed, isSavin
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl p-6 max-w-md w-full shadow-xl animate-slide-up">
+    <Modal onClose={onClose} maxWidth="md">
         <h2 className="text-xl font-semibold mb-4">Edit Book</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -127,8 +127,7 @@ export function EditBookModal({ book, onClose, onSave, onCoverRefreshed, isSavin
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

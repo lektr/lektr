@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { type PendingMetadataUpdate, updateBookMetadata } from "@/lib/api";
+import { Modal } from "./modal";
 
 interface MetadataUpdateModalProps {
   updates: PendingMetadataUpdate[];
@@ -45,8 +46,7 @@ export function MetadataUpdateModal({ updates, onClose, onComplete }: MetadataUp
   if (!current) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+    <Modal onClose={onClose} maxWidth="lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Update Metadata?</h2>
           <span className="text-sm text-muted-foreground">{currentIndex + 1} of {updates.length}</span>
@@ -90,7 +90,6 @@ export function MetadataUpdateModal({ updates, onClose, onComplete }: MetadataUp
             {processing ? "Updating..." : "Update"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

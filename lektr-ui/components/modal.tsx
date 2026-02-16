@@ -5,13 +5,15 @@ import { useEffect, useRef } from "react";
 interface ModalProps {
   children: React.ReactNode;
   onClose: () => void;
-  maxWidth?: "sm" | "md" | "lg";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "4xl";
 }
 
 const maxWidthClasses = {
   sm: "max-w-sm",
   md: "max-w-md",
   lg: "max-w-lg",
+  xl: "max-w-xl",
+  "4xl": "max-w-4xl",
 };
 
 export function Modal({ children, onClose, maxWidth = "md" }: ModalProps) {
@@ -40,7 +42,7 @@ export function Modal({ children, onClose, maxWidth = "md" }: ModalProps) {
     >
       <div
         ref={panelRef}
-        className={`bg-card rounded-xl border border-border/50 p-6 ${maxWidthClasses[maxWidth]} w-full shadow-2xl animate-slide-up`}
+        className={`bg-card rounded-xl border border-border/50 p-6 ${maxWidthClasses[maxWidth]} w-full shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto`}
       >
         {children}
       </div>
