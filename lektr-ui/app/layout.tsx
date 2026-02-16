@@ -49,7 +49,7 @@ export default function RootLayout({
             }}
           />
           <Navbar />
-          <main id="main-content" className="flex-1 pt-[72px]">
+          <main id="main-content" className="flex-1 pt-18">
             {children}
           </main>
           <Footer />

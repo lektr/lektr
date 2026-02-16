@@ -67,6 +67,7 @@
   --color-error-foreground: var(--error-foreground);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-serif: var(--font-literata), Georgia, serif;
+  --breakpoint-nav: 948px;
 }
 
 html {
@@ -177,42 +178,88 @@ body {
   }
 }
 
-button,
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  border-radius: 9999px;
-  transition: all 0.15s ease;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0.75rem 1.5rem;
-  cursor: pointer;
-}
+@layer base {
+  button,
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    transition: all 0.15s ease;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+  }
 
-button:active,
-.btn:active {
-  transform: scale(0.98);
-}
+  button:active,
+  .btn:active {
+    transform: scale(0.98);
+  }
 
-button:disabled,
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  button:disabled,
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-*:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
+  *:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 
-button:focus-visible,
-.btn:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--ring);
+  button:focus-visible,
+  .btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--ring);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    font-size: 1rem;
+    color: var(--foreground);
+    transition: all 0.15s ease;
+    min-height: 44px;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    color: var(--foreground);
+    transition: all 0.15s ease;
+    min-height: 44px;
+  }
+
+  input:hover,
+  textarea:hover,
+  select:hover {
+    border-color: var(--muted-foreground);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+  }
 }
 
 .btn-primary {
@@ -242,50 +289,6 @@ button:focus-visible,
 .btn-ghost:hover {
   background: var(--muted);
   color: var(--foreground);
-}
-
-input:not([type="checkbox"]):not([type="radio"]),
-select {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 9999px;
-  font-size: 1rem;
-  color: var(--foreground);
-  transition: all 0.15s ease;
-  min-height: 44px;
-}
-
-textarea {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  font-size: 1rem;
-  color: var(--foreground);
-  transition: all 0.15s ease;
-  min-height: 44px;
-}
-
-input:hover,
-textarea:hover,
-select:hover {
-  border-color: var(--muted-foreground);
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--ring);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--muted-foreground);
 }
 
 @keyframes fadeIn {

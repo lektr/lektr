@@ -9,26 +9,26 @@ export function Logo({ className = "" }: { className?: string }) {
   return (
     <div className={`relative flex items-center ${className}`}>
       {/* Mobile Icon (always visible on small screens, hidden on md) */}
-      <div className="md:hidden">
+      <div className="nav:hidden">
         <Image
           src="/logo-icon.svg"
           alt="Lektr Logo"
-          width={32}
-          height={32}
+          width={36}
+          height={36}
           priority
-          className="w-8 h-8"
+          className="w-9 h-9"
         />
       </div>
 
       {/* Desktop Full Logo (hidden on small screens, visible on md) */}
-      <div className="hidden md:block">
+      <div className="hidden nav:block">
         <Image
           src={resolvedTheme === "dark" ? "/logo-inverted.svg" : "/logo.svg"}
           alt="Lektr"
-          width={100}
-          height={32}
+          width={112}
+          height={36}
           priority
-          className="h-8 w-auto"
+          className="h-9 w-auto"
         />
       </div>
     </div>
