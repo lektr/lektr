@@ -17,22 +17,24 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  const isDev = process.env.NODE_ENV === 'development';
+
   useEffect(() => {
+    // Skip telemetry entirely in development
+    if (isDev) return;
+
     // Check if telemetry is explicitly disabled
     const enabled = settingsData?.settings?.telemetry_enabled?.value;
-    
+
     // Default to enabled if not set, or checks for specific "false" string
     const isEnabled = enabled !== "false";
 
     if (isEnabled && typeof window !== 'undefined') {
       posthog.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,
-        person_profiles: 'identified_only', // Optimized for privacy
-        capture_pageview: false, // We'll manually track pageviews if needed or use Next.js router events
+        person_profiles: 'identified_only',
+        capture_pageview: false,
         autocapture: true,
-        loaded: (ph) => {
-          if (process.env.NODE_ENV === 'development') ph.debug();
-        }
       });
     } else {
       // If disabled, ensure we stop capturing and clear opt-in
@@ -40,14 +42,15 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
         posthog.opt_out_capturing();
       }
     }
-  }, [settingsData]);
+  }, [settingsData, isDev]);
 
   // Track page views
   useEffect(() => {
+    if (isDev) return;
     if (typeof window !== 'undefined' && settingsData?.settings?.telemetry_enabled?.value !== "false") {
       posthog.capture('$pageview');
     }
-  }, [settingsData]); // React logic might need refinement for route changes in Next.js app dir, usually handled by a separate component or effect on pathname
+  }, [settingsData, isDev]);
 
   return <>{children}</>;
 }

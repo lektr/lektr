@@ -84,8 +84,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
     
-    // Track theme change
-    posthog.capture('theme_changed', { theme: newTheme });
+    if (process.env.NODE_ENV !== 'development') {
+      posthog.capture('theme_changed', { theme: newTheme });
+    }
   };
 
   // Prevent flash of wrong theme

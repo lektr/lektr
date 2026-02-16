@@ -52,7 +52,9 @@ export function KindleIntegrationCard() {
   // Track extension detection
   useEffect(() => {
     if (status.installed) {
-      posthog.capture('extension_detected', { version: status.version });
+      if (process.env.NODE_ENV !== 'development') {
+        posthog.capture('extension_detected', { version: status.version });
+      }
     }
   }, [status.installed, status.version]);
 
