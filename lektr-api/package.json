@@ -23,7 +23,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.38.0",
-    "hono": "^4.6.0",
+    "hono": "^4.11.10",
     "jose": "^5.9.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
